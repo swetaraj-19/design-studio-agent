@@ -17,13 +17,3 @@ try:
 except Exception as e:
     print(f"FATAL: Could not initialize GCP clients: {e}")
     raise
-
-# # 2. ADD THIS TEST BLOCK:
-# if __name__ == "__main__":
-#     # This block only runs when you execute this file directly for testing
-#     print("\n--- RUNNING AUTH_HANDLER.PY FOR TESTING ---")
-#     print(f"Successfully imported PROJECT_ID: {PROJECT_ID}")
-#     print(f"Successfully imported LOCATION: {LOCATION}")
-#     print("Test: Storage client object:", storage_client)
-#     print("Test: Imagen model object:", imagen_model)
-#     print("--- TEST COMPLETE ---")
