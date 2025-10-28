@@ -26,3 +26,6 @@ On Windows (in PowerShell):
 Bash
 
 .\venv\Scripts\Activate.ps1
+
+
+uv vs pip - recommended - public adk
