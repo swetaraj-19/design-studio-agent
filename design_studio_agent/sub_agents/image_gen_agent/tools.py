@@ -1,5 +1,6 @@
 import os
 import uuid
+import asyncio
 import logging
 from datetime import datetime
 
@@ -12,25 +13,13 @@ from google import genai
 from google.genai import types
 from google.genai.types import GenerateContentConfig, Modality
 
-from google.adk.tools import ToolContext
+from google.adk.tools import FunctionTool, ToolContext
 from google.adk.agents.callback_context import CallbackContext
 
 from .config import IMAGE_GENERATION_TOOL_MODEL
 
 
-def _init_gemini_client():
-    PROJECT_ID = str(os.environ.get("GOOGLE_CLOUD_PROJECT"))
-
-    if not PROJECT_ID:
-        raise ValueError("'GOOGLE_CLOUD_PROJECT' env variable is missing.")
-
-    LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-
-    client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
-    return client
-
-
-def save_generated_image(
+def _save_generated_image(
     image_bytes: bytes, 
     file_extension:str, 
     tool_context: ToolContext
@@ -41,9 +30,10 @@ def save_generated_image(
     mime_type = f"image/{file_extension.lstrip('.')}" if file_extension else "image/png"
     filename = f"generated_image_{uuid.uuid4()}{file_extension if file_extension else '.png'}"
 
-    artifact_version = None
-
     try:
+        image = Image.open(BytesIO((image_bytes)))
+        image.save("try.png")
+
         artifact_part = types.Part(
             inline_data = types.Blob(data=image_bytes, mime_type=mime_type)
         )
@@ -53,21 +43,23 @@ def save_generated_image(
             artifact=artifact_part
         )
 
-        return {
-            "status": "success",
-            "filename": filename,
-            "artifact_version": artifact_version,
-            "message": "Image generated and saved as artifact."
-        }
-
     except Exception as error:
         return {
             "status": "error",
             "error": str(error) 
         }
 
+    return {
+        "status": "success",
+        "filename": filename,
+        "artifact_version": artifact_version,
+        "message": "Image generated and saved as artifact."
+    }
 
-def generate_image_tool(description: str, tool_context: ToolContext):
+save_generated_image = FunctionTool(func=_save_generated_image)
+
+
+def _generate_image_tool(description: str, tool_context: ToolContext):
     """
     Tool to generate a new image based on a text prompt and a reference image.
 
@@ -85,7 +77,14 @@ def generate_image_tool(description: str, tool_context: ToolContext):
             "status": str The operation status: "success", "fail", or "error.
             "message": A descriptive message indicating the operation result.
     """
-    client = _init_gemini_client()
+    PROJECT_ID = str(os.environ.get("GOOGLE_CLOUD_PROJECT"))
+
+    if not PROJECT_ID:
+        raise ValueError("'GOOGLE_CLOUD_PROJECT' env variable is missing.")
+
+    LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+    client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
 
     try:
         response = client.models.generate_content(
@@ -106,7 +105,7 @@ def generate_image_tool(description: str, tool_context: ToolContext):
                     b64 = part.inline_data.data
                     data = base64.b64decode(b64)
 
-                    artifact_result = save_generated_image(data, ".png", tool_context)
+                    artifact_result = _save_generated_image(b64, ".png", tool_context)
 
                     if "error" in artifact_result:
                         error_message = f"Image generated. Artifact save failed.\n\nError: {artifact_result.get("error")}"
@@ -130,3 +129,5 @@ def generate_image_tool(description: str, tool_context: ToolContext):
             "status": "error",
             "message": str(error)
         }
+
+generate_image_tool = FunctionTool(func=_generate_image_tool)
