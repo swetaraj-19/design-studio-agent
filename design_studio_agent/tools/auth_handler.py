@@ -4,16 +4,20 @@ import vertexai
 from google.cloud import storage
 from vertexai.preview.vision_models import ImageGenerationModel
 
-from ..config import PROJECT_ID,LOCATION
+from .. import config
 
 # Initialize clients once when this module is imported
 try: 
-    client = vertexai.init(project=PROJECT_ID,location=LOCATION)
-    storage_client = storage.Client(project=PROJECT_ID)
+    print(f"Auth Handler: Initializing clients for {config.GCP_PROJECT_ID}...")
+    vertexai.init(project=config.GCP_PROJECT_ID, location=config.GCP_LOCATION)
+    storage_client = storage.Client(project=config.GCP_PROJECT_ID)
 
-    # Load the model once
-    imagen_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
-    print("Auth Handler: Vertex AI and GCS clients initialized.")
+    # Load the specific Imagen model from config
+    print(f"Auth Handler: Loading model {config.IMAGE_MODEL}...")
+    imagen_model = ImageGenerationModel.from_pretrained(config.IMAGE_MODEL)
+    print("Auth Handler: Vertex AI and GCS clients initialized successfully.")
+    
 except Exception as e:
     print(f"FATAL: Could not initialize GCP clients: {e}")
+    # Re-raise the exception to stop the application if auth fails
     raise
