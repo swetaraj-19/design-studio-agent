@@ -1,133 +1,121 @@
 import os
-import uuid
-import asyncio
 import logging
-from datetime import datetime
-
-import base64
-from PIL import Image
-from io import BytesIO
-from typing import Any, Dict, Optional
+from dotenv import load_dotenv
 
 from google import genai
-from google.genai import types
-from google.genai.types import GenerateContentConfig, Modality
+from google.adk.tools import ToolContext
 
-from google.adk.tools import FunctionTool, ToolContext
-from google.adk.agents.callback_context import CallbackContext
-
-from .config import IMAGE_GENERATION_TOOL_MODEL
+load_dotenv()
 
 
-def _save_generated_image(
-    image_bytes: bytes, 
-    file_extension:str, 
-    tool_context: ToolContext
-) -> Dict[str, Any]:
-    if file_extension and not file_extension.startswith("."):
-        file_extension = "." + file_extension
+client = genai.Client(
+    vertexai=True,
+    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+    location=os.getenv("GOOGLE_CLOUD_LOCATION"),
+)
 
-    mime_type = f"image/{file_extension.lstrip('.')}" if file_extension else "image/png"
-    filename = f"generated_image_{uuid.uuid4()}{file_extension if file_extension else '.png'}"
-
-    try:
-        image = Image.open(BytesIO((image_bytes)))
-        image.save("try.png")
-
-        artifact_part = types.Part(
-            inline_data = types.Blob(data=image_bytes, mime_type=mime_type)
-        )
-
-        artifact_version = tool_context.save_artifact(
-            filename=filename,
-            artifact=artifact_part
-        )
-
-    except Exception as error:
-        return {
-            "status": "error",
-            "error": str(error) 
-        }
-
-    return {
-        "status": "success",
-        "filename": filename,
-        "artifact_version": artifact_version,
-        "message": "Image generated and saved as artifact."
-    }
-
-save_generated_image = FunctionTool(func=_save_generated_image)
-
-
-def _generate_image_tool(description: str, tool_context: ToolContext):
+async def generate_image_tool(
+    tool_context: ToolContext,
+    description: str,
+    image_artifact_ids: list = [],
+) -> dict[str, str]:
     """
-    Tool to generate a new image based on a text prompt and a reference image.
+    Tool to generate a new image based on a text description and the provided 
+    reference image(s).
 
-    This function generates a new image based on the text description and the
-    reference image. It processes the base64-encoded response data and attempts 
-    to convert the resulting image bytes into a PIL Image object.
+    This tool generates a new image based on the user's text description and 
+    the reference image(s), provided in `image_artifact_ids`. It automatically 
+    fetches the reference images from the artifacts using the id's provided in 
+    the `image_artifact_ids`.
 
     Args:
         description (str): Text description describing the desired image output.
-            - Example: "Image of a shampoo bottle on a spa counter."
-        tool_context (ToolContext): Tool Context
+            * Be detailed and specific with describing the image.
+                - e.g., "Image of a shampoo bottle on a spa counter."
+        image_artifact_ids (list): List of image IDs to use as reference image.
+            * For single image: provide a list with one item 
+                - e.g., ["product.png"]
+            * For multiple images: provide a list with multiple items 
+                - e.g., ["product1.png", "product2.png"]
 
     Returns:
-        dict: A dictionary containing the generation result:
-            "status": str The operation status: "success", "fail", or "error.
-            "message": A descriptive message indicating the operation result.
+        dict: A dictionary containing the operation result:
+            - 'tool_response_artifact_id': Artifact ID for the generated image
+            - 'tool_input_artifact_ids': Comma-separated list of input artifact IDs
+            - 'used_prompt': The full image generation prompt used
+            - 'status': Success or error status
+            - 'message': Additional information or error details
     """
-    PROJECT_ID = str(os.environ.get("GOOGLE_CLOUD_PROJECT"))
-
-    if not PROJECT_ID:
-        raise ValueError("'GOOGLE_CLOUD_PROJECT' env variable is missing.")
-
-    LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-
-    client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
-
     try:
-        response = client.models.generate_content(
-            model=IMAGE_GENERATION_TOOL_MODEL,
-            contents=description,
-            config=GenerateContentConfig(
-                response_modalities=[Modality.TEXT, Modality.IMAGE],
+        if not image_artifact_ids:
+            return {
+                "status": "error",
+                "tool_response_artifact_id": "",
+                "tool_input_artifact_ids": "",
+                "used_prompt": description,
+                "message": "No reference image provided. Please provide a reference image to generate the image.",
+            }
+
+        image_artifacts = []
+        for img_id in image_artifact_ids:
+            artifact = await tool_context.load_artifact(filename=img_id)
+
+            if artifact is None:
+                return {
+                    "status": "error",
+                    "tool_response_artifact_id": "",
+                    "tool_input_artifact_ids": "",
+                    "used_prompt": description,
+                    "message": f"Artifact {img_id} not found",
+                }
+
+            image_artifacts.append(artifact)
+
+        image_generation_prompt = (
+            f"USER PROMPT: {description}.\n\n---\n"
+            "IMPORTANT: Preserve the product's original appearance, shape, color, and design as faithfully as possible. "
+            "Do not alter the core product features, branding, or characteristics."
+        )
+
+        contents = image_artifacts + [image_generation_prompt]
+
+        response = await client.aio.models.generate_content(
+            model="gemini-2.5-flash-image",
+            contents=contents,
+            config=genai.types.GenerateContentConfig(
+                response_modalities=["Image"],
                 candidate_count=1
             ),
         )
 
+        artifact_id = ""
+
         for part in response.candidates[0].content.parts:
-            if part.inline_data:
-                try:
-                    image = Image.open(BytesIO((part.inline_data.data)))
-                    image.save("sample.png")
+            if part.inline_data is not None:
+                artifact_id = f"generated_img_{tool_context.function_call_id}.png"
 
-                    b64 = part.inline_data.data
-                    data = base64.b64decode(b64)
+                await tool_context.save_artifact(
+                    filename=artifact_id, 
+                    artifact=part
+                )
 
-                    artifact_result = _save_generated_image(b64, ".png", tool_context)
-
-                    if "error" in artifact_result:
-                        error_message = f"Image generated. Artifact save failed.\n\nError: {artifact_result.get("error")}"
-
-                        return {
-                            "status": "error",
-                            "message": error_message
-                        }
-
-                    else:
-                        return artifact_result
-
-                except Exception as error:
-                    return {
-                        "status": "error",
-                        "message": f"Unable to save the generated image: {str(error)}"
-                    }
-
-    except Exception as error:
+        input_ids_str = ", ".join(image_artifact_ids)
+        
         return {
-            "status": "error",
-            "message": str(error)
+            "status": "success",
+            "tool_response_artifact_id": artifact_id,
+            "tool_input_artifact_ids": input_ids_str,
+            "used_prompt": image_generation_prompt,
+            "message": f"Image generated successfully using {len(image_artifacts)} input image(s)",
         }
 
-generate_image_tool = FunctionTool(func=_generate_image_tool)
+    except Exception as e:
+        input_ids_str = ", ".join(image_artifact_ids) if image_artifact_ids else ""
+
+        return {
+            "status": "error",
+            "tool_response_artifact_id": "",
+            "tool_input_artifact_ids": input_ids_str,
+            "used_prompt": description,
+            "message": f"Error generating image: {str(e)}",
+        }
