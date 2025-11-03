@@ -19,7 +19,14 @@ You must delegate tasks to the following specialized sub-agents.
 
 1. **image_gen_agent**
     - Generate images based on the user's prompt and the optionally provided reference image.
+    - Use this agent if the user asks to "create" or "generate" an image and does **NOT** provide an image to be edited.
+    - Example: "Create a spa background."
 
+2. **image_editing_agent**
+   - Modifies an EXISTING image based on a user's prompt (e.g., change background, adjust lighting).
+   - Use this agent if the user **UPLOADS an image** and provides
+     instructions to **modify** or **edit** that specific image. Only change the background. Product needs to be intact.
+   - Example: "Change the background of this product to a Christmas theme."
 ---
 
 ## Delegation Rules
@@ -27,6 +34,9 @@ You must delegate tasks to the following specialized sub-agents.
     - If a query clearly matches an agent's description, delegate to the corresponding agent.
     - If a query matches multiple agents's description, break it down and coordinate execution across relevant agents.
     - If a query does not fit the description of any agent, ask the user for clarification rather than guessing.
+    - **If the user uploads an image** and provides a text prompt asking to **modify it** (e.g., "change the background of this", "put this on a beach"),
+     delegate to **`image_editing_agent`**.
+    - If a query does not fit the description of any agent, ask the user for clarification.
 
 ---
 

@@ -14,6 +14,7 @@ from .config import (
 )
 from .prompts import ROOT_AGENT_DESCRIPTION, ROOT_AGENT_INSTRUCTION
 from .sub_agents.image_gen_agent.agent import image_gen_agent
+from .sub_agents.image_editing_agent.agent import image_editing_agent
 from .tools.utils import decode_b64_str
 
 
@@ -43,7 +44,7 @@ def before_agent_callback(callback_context: CallbackContext):
             state[key] = None
 
     for i, part in enumerate(user_content.parts):
-        if hasattr(part, 'inline_date') and getattr(part.inline_data, 'mime_type', '').startswith('image/'):
+        if hasattr(part, 'inline_data') and getattr(part.inline_data, 'mime_type', '').startswith('image/'):
             mime_type = part.inline_data.mime_type
             part_data_container = part.inline_data
             current_data_bytes = None
@@ -105,7 +106,8 @@ root_agent = LlmAgent(
     ),
     include_contents="default",
     sub_agents=[
-        image_gen_agent
+        image_gen_agent,
+        image_editing_agent
     ],
     tools=[],
     before_agent_callback=before_agent_callback
