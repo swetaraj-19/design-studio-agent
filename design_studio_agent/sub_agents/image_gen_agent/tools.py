@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from google import genai
 from google.adk.tools import ToolContext
 
+from .config import IMAGE_GENERATION_TOOL_MODEL
+
 load_dotenv()
 
 
@@ -73,14 +75,17 @@ async def generate_image_tool(
 
         image_generation_prompt = (
             f"USER PROMPT: {description}.\n\n---\n"
-            "IMPORTANT: Preserve the product's original appearance, shape, color, and design as faithfully as possible. "
-            "Do not alter the core product features, branding, or characteristics."
+            "**CRITICAL INSTRUCTION: YOU MUST PRESERVE THE REFERENCE PRODUCT.**\n"
+            "1.  **DO NOT ALTER THE PRODUCT:** The reference product (bottle, jar, etc.) must be used *exactly* as-is.\n"
+            "2.  **PRESERVE ALL TEXT:** All text, logos, and branding on the reference product must be preserved perfectly. Do not regenerate, misspell, or change any text.\n"
+            "3.  **PRESERVE APPEARANCE:** The product's shape, color, design, and label must remain identical to the reference image.\n"
+            "4.  **ONLY CHANGE THE BACKGROUND/SCENE:** Your only task is to place the *unaltered* product into the new scene described in the user prompt."
         )
 
         contents = image_artifacts + [image_generation_prompt]
 
         response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash-image",
+            model=IMAGE_GENERATION_TOOL_MODEL,
             contents=contents,
             config=genai.types.GenerateContentConfig(
                 response_modalities=["Image"],

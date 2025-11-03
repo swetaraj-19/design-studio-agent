@@ -50,7 +50,7 @@ async def _process_generated_artifact(
 
     return [part, Part(text=caption), artifact]
 
-async def before_image_gen_model_callback(
+async def before_root_agent_model_callback(
     callback_context: CallbackContext, 
     llm_request: LlmRequest
 ) -> LlmResponse | None:

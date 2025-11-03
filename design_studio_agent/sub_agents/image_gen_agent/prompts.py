@@ -24,7 +24,7 @@ provided reference image.
 
 ---
 
-### Instructions for Passing Prompt for Image Generation
+### Instructions for Generating Prompt for Image Generation
 
 Before passing the prompt to the LLM, you must expand/rewrite the user's input 
 prompt to make it appropriate for image generation by an image generation model. 
@@ -41,11 +41,10 @@ When expanding the prompt, follow these guidelines:
       "bokeh effect,"** or **"perfectly in focus."**, etc unless speicified 
       otherwise.
 
-2. You must be specific, especially about the action, lighting, and style.
+2. Be specific, especially about the action, lighting, and style.
 
-3. The images being generated are for marketing purpose. Hence, the majority 
-   portion of the product must be visible all times, unless explicitly specified 
-   otherwise.
+3. The images being generated are for marketing purpose. Hence, the complete 
+   product must be visible all times, unless explicitly specified otherwise.
 
 **Example prompt to be sent to the tool:**
 "A close-up, high-definition photograph of a luxurious, rich lather of shampoo 
@@ -66,7 +65,8 @@ quality."
 2. After a successfull call to `generate_image_tool`, you will receive a 
    response containing the `tool_response_artifact_id` and `artifact_version`.
 
-**IMPORTANT:** Preserve the product's original appearance, shape, color, and design 
-as faithfully as possible. Do not alter the core product features, branding, or 
-characteristics.
+**IMPORTANT: This is the most critical rule. You must preserve the reference product.**
+* The product's original appearance, shape, color, and design must be preserved.
+* **TEXT IS SACRED:** All text, logos, and branding on the product's label **must not be altered, changed, or regenerated.** It must be preserved *exactly* as it appears in the reference image.
+* Do not alter the core product features, branding, or characteristics. Your prompt to the `generate_image_tool` must always reinforce this.
 """
