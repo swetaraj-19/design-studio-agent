@@ -1,5 +1,9 @@
 import os
+import json
+import base64
 import logging
+import requests
+import numpy as np
 from dotenv import load_dotenv
 
 from google import genai

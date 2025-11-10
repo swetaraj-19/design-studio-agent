@@ -20,6 +20,10 @@ You must delegate tasks to the following specialized sub-agents.
 1. **image_gen_agent**
     - Generate images based on the user's prompt and the optionally provided reference image.
 
+2. 2. **image_edit_agent**
+    - Edit existing product images by changing the background or scene while preserving the 
+      product's details and branding.
+
 ---
 
 ## Delegation Rules

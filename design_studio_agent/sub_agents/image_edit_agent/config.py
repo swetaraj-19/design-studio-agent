@@ -1,0 +1,5 @@
+IMAGE_EDIT_AGENT_MODEL: str = "gemini-2.5-flash"
+IMAGE_EDIT_AGENT_MAX_TOKENS: int = 4096
+IMAGE_EDIT_AGENT_TEMPERATURE: float = 0.3
+
+IMAGE_BACKGROUND_TOOL_MODEL: str = "imagen-4.0-fast-generate-001"

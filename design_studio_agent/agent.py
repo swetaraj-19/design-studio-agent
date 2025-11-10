@@ -14,7 +14,10 @@ from .config import (
     ROOT_AGENT_MAX_TOKENS
 )
 from .prompts import ROOT_AGENT_DESCRIPTION, ROOT_AGENT_INSTRUCTION
+
 from .sub_agents.image_gen_agent.agent import image_gen_agent
+from .sub_agents.image_edit_agent.agent import image_edit_agent
+
 from .tools.utils import decode_b64_str
 
 load_dotenv()
@@ -33,7 +36,8 @@ root_agent = LlmAgent(
     ),
     include_contents="default",
     sub_agents=[
-        image_gen_agent
+        image_gen_agent,
+        image_edit_agent
     ],
     tools=[],
     before_model_callback=before_root_agent_model_callback,
