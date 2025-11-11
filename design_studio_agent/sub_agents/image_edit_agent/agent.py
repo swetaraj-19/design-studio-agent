@@ -12,7 +12,7 @@ from .config import (
     IMAGE_EDIT_AGENT_MAX_TOKENS
 )
 from .prompts import IMAGE_EDIT_AGENT_DESCRIPTION, IMAGE_EDIT_AGENT_INSTRUCTION
-from .tools import change_background_tool
+from .tools import change_background_capability_tool, change_background_fast_tool
 
 
 image_edit_agent = Agent(
@@ -26,7 +26,8 @@ image_edit_agent = Agent(
     ),
     include_contents="default",
     tools=[
-        change_background_tool,
+        change_background_capability_tool, 
+        change_background_fast_tool
     ],
     before_model_callback=before_image_edit_model_callback
 )
