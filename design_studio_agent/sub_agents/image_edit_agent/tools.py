@@ -8,9 +8,11 @@ import requests
 import numpy as np
 from dotenv import load_dotenv
 import traceback
+from datetime import datetime, timedelta
 
 from google import genai
 from google.adk.tools import ToolContext
+from google.cloud import storage
 import google.genai.types as types
 
 from .utils import change_image_background
@@ -29,6 +31,8 @@ async def change_background_fast_tool(
     tool_context: ToolContext,
     description: str,
     image_artifact_id: str,
+    aspect_ratio: str,
+    sample_count: int = 1
 ):
     """
     Tool for changing the background based on a user-provided description, 
@@ -36,10 +40,10 @@ async def change_background_fast_tool(
 
     This tool is optimized for product photography editing. It loads a 
     single reference product image, crafts a specific set of instructions to 
-    ensure the external model *only* alters the background, and then sends the 
-    request synchronously to the Imagen API. The generated images are then 
-    decoded and saved back to the artifact store. The tools returns the 
-    artifact Id of the edited image.
+    ensure the external model *only* alters the background, sets the aspect 
+    ratio and then sends the request synchronously to the Imagen API. The 
+    generated images are then decoded and saved back to the artifact store. The 
+    tools returns the artifact Id of the edited image.
 
     Args:
         tool_context: The execution context, which provides asynchronous methods 
@@ -49,6 +53,10 @@ async def change_background_fast_tool(
                            "on a snowy mountain peak at sunset").
         image_artifact_id (str): The unique ID or filename of the reference 
                                  product image artifact to be used as input.
+        aspect_ratio (str): The aspect ratio for the generated output image.
+                             Supported values are: "1:1", "4:3", "3:4", "9:16", 
+                             and "16:9".
+        sample_count (int): The number of images to generate. Default is 1.
 
     Returns:
         dict: A structured dictionary reporting the tool's execution result:
@@ -98,17 +106,28 @@ async def change_background_fast_tool(
 
         base64_img_string = base64.b64encode(image_artifact.inline_data.data).decode('utf-8')
 
+        supported_aspect_ratios = ["1:1", "4:3", "3:4", "9:16", "16:9"]
+        aspect_ratio = aspect_ratio if aspect_ratio in supported_aspect_ratios else "1:1"
+
+        if not sample_count:
+            sample_count = 1
+        elif sample_count > 4:
+            sample_count = 4
+        else:
+            sample_count = int(sample_count)
+
         response = change_image_background(
             prompt=change_background_prompt,
             negativePrompt = "Dark colors",
             mode = "backgroundEditing",
             base64_encoded_image = base64_img_string,
             sampleImageSize = 1024,
-            sampleCount = 1,
+            sampleCount = sample_count,
             guidanceScale = "14",
             seed = 257,
             isProductImage = True,
             disablePersonFace = True,
+            aspect_ratio = aspect_ratio,
             author_func = "change_background_fast_tool"
         )
 
@@ -188,6 +207,7 @@ async def change_background_capability_tool(
     tool_context: ToolContext,
     description: str,
     image_artifact_id: str,
+    sample_count: int = 1
 ):
     """
     Tool for changing the background based on a user-provided description, 
@@ -208,6 +228,7 @@ async def change_background_capability_tool(
                            "on a snowy mountain peak at sunset").
         image_artifact_id (str): The unique ID or filename of the reference 
                                  product image artifact to be used as input.
+        sample_count (int): The number of images to generate. Default is 1.
 
     Returns:
         dict: A structured dictionary reporting the tool's execution result:
@@ -257,17 +278,25 @@ async def change_background_capability_tool(
 
         base64_img_string = base64.b64encode(image_artifact.inline_data.data).decode('utf-8')
 
+        if not sample_count:
+            sample_count = 1
+        elif sample_count > 4:
+            sample_count = 4
+        else:
+            sample_count = int(sample_count)
+
         response = change_image_background(
             prompt=change_background_prompt,
             negativePrompt = "Dark colors",
             mode = "backgroundEditing",
             base64_encoded_image = base64_img_string,
             sampleImageSize = 1024,
-            sampleCount = 1,
+            sampleCount = sample_count,
             guidanceScale = "14",
             seed = 257,
             isProductImage = True,
             disablePersonFace = True,
+            aspect_ratio="1:1",
             author_func = "change_background_capability_tool"
         )
 
@@ -341,3 +370,5 @@ async def change_background_capability_tool(
             "message": f"Error generating image: {str(e)}",
             "traceback_details": traceback_str 
         }
+
+

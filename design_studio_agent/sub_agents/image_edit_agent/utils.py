@@ -17,6 +17,7 @@ def change_image_background(
     seed: int,
     isProductImage: bool,
     disablePersonFace: bool,
+    aspect_ratio: str,
     author_func: str = "change_background_fast_tool"
 ):
     PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
@@ -40,8 +41,8 @@ def change_image_background(
         ACCESS_TOKEN = result.stdout.strip()
 
         headers = {
-        'Authorization': f'Bearer {ACCESS_TOKEN}',
-        'Content-Type': 'application/json; charset=UTF-8'
+            'Authorization': f'Bearer {ACCESS_TOKEN}',
+            'Content-Type': 'application/json; charset=UTF-8'
         }
         # "x-goog-api-key: $GEMINI_API_KEY"
 
@@ -57,6 +58,7 @@ def change_image_background(
             ],
             "parameters":
                 {
+                    "aspectRatio": aspect_ratio,
                     "IsProductImage": isProductImage,
                     "mode": mode,
                     "sampleImageSize": sampleImageSize,
@@ -83,8 +85,8 @@ def change_image_background(
         ACCESS_TOKEN = result.stdout.strip()
 
         headers = {
-        'Authorization': f'Bearer {ACCESS_TOKEN}',
-        'Content-Type': 'application/json; charset=UTF-8'
+            'Authorization': f'Bearer {ACCESS_TOKEN}',
+            'Content-Type': 'application/json; charset=UTF-8'
         }
 
         data = {
@@ -107,7 +109,8 @@ def change_image_background(
                         },
                         "maskImageConfig": {
                             "maskMode": "MASK_MODE_BACKGROUND",
-                            "dilation": 0.0
+                            "dilation": 0.0,
+                            "maskClasses": [115]  # masks "bottle". ref: Imagen REST API > Edit Images > Class Ids
                         }
                     }
                 ]
@@ -115,10 +118,12 @@ def change_image_background(
             ],
             "parameters": {
                 "editConfig": {
-                    "baseSteps": 45
+                    "baseSteps": 65
                 },
                 "editMode": "EDIT_MODE_BGSWAP",
-                "sampleCount": 1
+                "sampleCount": sampleCount,
+                "guidanceScale": guidanceScale,
+                "personGeneration": "allow_all",
             }
         }
 
