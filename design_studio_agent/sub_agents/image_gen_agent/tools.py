@@ -23,6 +23,8 @@ client = genai.Client(
 async def generate_image_tool(
     tool_context: ToolContext,
     description: str,
+    aspect_ratio: str,
+    candidate_count: int,
     image_artifact_ids: list = [],
 ) -> dict[str, str]:
     """
@@ -34,10 +36,20 @@ async def generate_image_tool(
     fetches the reference images from the artifacts using the id's provided in 
     the `image_artifact_ids`.
 
+    NOTE: This tool should not be used for `image editing` tasks such as updating the 
+    background of an image. For image editing tasks, delegate to `image_edit_agent`.
+
     Args:
         description (str): Text description describing the desired image output.
             * Be detailed and specific with describing the image.
                 - e.g., "Image of a shampoo bottle on a spa counter."
+        aspect_ratio (str): Desired aspect ratio for the generated image.
+            * Must be one of: ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
+            * Default is "1:1".
+                - e.g., "1:1"
+        candidate_count (int): Number of images to generate.
+            * Must be between 1 to 4. Default is 1.
+                - e.g., 3
         image_artifact_ids (list): List of image IDs to use as reference image.
             * For single image: provide a list with one item 
                 - e.g., ["product.png"]
@@ -53,6 +65,8 @@ async def generate_image_tool(
             - 'message': Additional information or error details
     """
     try:
+        ALLOWED_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
+
         if not image_artifact_ids:
             return {
                 "status": "error",
@@ -88,12 +102,18 @@ async def generate_image_tool(
 
         contents = image_artifacts + [image_generation_prompt]
 
+        aspect_ratio = aspect_ratio if aspect_ratio in ALLOWED_ASPECT_RATIOS else "1:1"
+        candidate_count = candidate_count if 1 <= candidate_count <= 4 else 1
+
         response = await client.aio.models.generate_content(
             model=IMAGE_GENERATION_TOOL_MODEL,
             contents=contents,
             config=genai.types.GenerateContentConfig(
                 response_modalities=["Image"],
-                candidate_count=1
+                candidate_count=candidate_count,
+                image_config=genai.types.ImageConfig(
+                    aspect_ratio=aspect_ratio,
+                )
             ),
         )
 

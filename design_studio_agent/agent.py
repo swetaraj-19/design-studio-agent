@@ -13,8 +13,9 @@ from .config import (
     ROOT_AGENT_TEMPERATURE, 
     ROOT_AGENT_MAX_TOKENS
 )
-from .prompts import ROOT_AGENT_DESCRIPTION, ROOT_AGENT_INSTRUCTION
+from .prompts import ROOT_AGENT_DESCRIPTION, ROOT_AGENT_INSTRUCTION, GLOBAL_INSTRUCTION
 
+from .sub_agents.gcs_agent.agent import gcs_agent
 from .sub_agents.image_gen_agent.agent import image_gen_agent
 from .sub_agents.image_edit_agent.agent import image_edit_agent
 
@@ -35,7 +36,9 @@ root_agent = LlmAgent(
         max_output_tokens=ROOT_AGENT_MAX_TOKENS,
     ),
     include_contents="default",
+    global_instruction=GLOBAL_INSTRUCTION,
     sub_agents=[
+        gcs_agent,
         image_gen_agent,
         image_edit_agent
     ],

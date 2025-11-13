@@ -118,7 +118,7 @@ async def change_background_fast_tool(
 
         response = change_image_background(
             prompt=change_background_prompt,
-            negativePrompt = "Dark colors",
+            negativePrompt = "Dark colors, dark background, low res, low quality",
             mode = "backgroundEditing",
             base64_encoded_image = base64_img_string,
             sampleImageSize = 1024,
