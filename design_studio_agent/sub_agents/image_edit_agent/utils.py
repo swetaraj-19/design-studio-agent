@@ -1,7 +1,10 @@
-import requests
-import json
 import os
+import json
+import requests
 import subprocess
+
+import google.auth
+import google.auth.transport.requests
 
 from .config import IMAGE_BACKGROUND_CAPABILITY_TOOL_MODEL, IMAGE_BACKGROUND_FAST_TOOL_MODEL
 
@@ -26,25 +29,32 @@ def change_image_background(
     if not PROJECT_ID or not REGION:
         raise ValueError("PROJECT ID or REGION not found in .env file")
 
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    credentials, project_id = google.auth.default(scopes=scopes)
+
+    request = google.auth.transport.requests.Request()
+    credentials.refresh(request)
+
+    ACCESS_TOKEN = credentials.token
+
     if author_func == "change_background_fast_tool":
         IMAGEN_MODEL = IMAGE_BACKGROUND_FAST_TOOL_MODEL
 
         ENDPOINT_URL = f"projects/{PROJECT_ID}/locations/{REGION}/publishers/google/models/{IMAGEN_MODEL}"
 
-        result = subprocess.run(
-            ['gcloud', 'auth', 'print-access-token'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-
-        ACCESS_TOKEN = result.stdout.strip()
+        #result = subprocess.run(
+        #    ['gcloud', 'auth', 'print-access-token'],
+        #    capture_output=True,
+        #    text=True,
+        #    check=True
+        #)
+        
+        #ACCESS_TOKEN = result.stdout.strip()
 
         headers = {
             'Authorization': f'Bearer {ACCESS_TOKEN}',
             'Content-Type': 'application/json; charset=UTF-8'
         }
-        # "x-goog-api-key: $GEMINI_API_KEY"
 
         data = {
             "instances":
@@ -75,14 +85,14 @@ def change_image_background(
 
         ENDPOINT_URL = f"projects/{PROJECT_ID}/locations/{REGION}/publishers/google/models/{IMAGEN_MODEL}"
 
-        result = subprocess.run(
-            ['gcloud', 'auth', 'print-access-token'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        #result = subprocess.run(
+        #    ['gcloud', 'auth', 'print-access-token'],
+        #    capture_output=True,
+        #    text=True,
+        #    check=True
+        #)
 
-        ACCESS_TOKEN = result.stdout.strip()
+        #ACCESS_TOKEN = result.stdout.strip()
 
         headers = {
             'Authorization': f'Bearer {ACCESS_TOKEN}',
