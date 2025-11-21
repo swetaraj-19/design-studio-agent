@@ -1,10 +1,17 @@
 import io
 import os
 import base64
+import logging
+import warnings
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
-from google.adk.tools import ToolContext
 from google.cloud import storage
+from google.adk.tools import ToolContext
+
+load_dotenv()
+logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 
 def decode_b64_str(b64_str: str) -> bytes:

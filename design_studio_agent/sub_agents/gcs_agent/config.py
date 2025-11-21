@@ -1,3 +1,4 @@
 GCS_AGENT_MODEL: str = "gemini-2.5-flash"
+
 GCS_AGENT_MAX_TOKENS: int = 4096
 GCS_AGENT_TEMPERATURE: float = 0.3

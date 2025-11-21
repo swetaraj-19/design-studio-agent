@@ -1,3 +1,7 @@
+import logging
+import warnings
+from dotenv import load_dotenv
+
 from google.genai import types
 from google.genai import Client
 
@@ -16,6 +20,10 @@ from .prompts import IMAGE_EDIT_AGENT_DESCRIPTION, IMAGE_EDIT_AGENT_INSTRUCTION
 
 from .tools import change_background_capability_tool, change_background_fast_tool
 from ...tools.utils import save_image_to_gcs
+
+load_dotenv()
+logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 
 image_edit_agent = Agent(

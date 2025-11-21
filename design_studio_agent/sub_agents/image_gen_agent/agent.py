@@ -1,3 +1,7 @@
+import logging
+import warnings
+from dotenv import load_dotenv
+
 from google.genai import types
 from google.genai import Client
 
@@ -15,6 +19,10 @@ from .prompts import IMAGE_GEN_AGENT_DESCRIPTION, IMAGE_GEN_AGENT_INSTRUCTION
 
 from .tools import generate_image_tool
 from ...tools.utils import save_image_to_gcs
+
+load_dotenv()
+logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 
 image_gen_agent = Agent(

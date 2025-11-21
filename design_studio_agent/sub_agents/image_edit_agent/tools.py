@@ -1,23 +1,26 @@
-import os
-from PIL import Image
 import io
+import os
 import json
 import base64
 import logging
 import requests
+import warnings
 import numpy as np
+from PIL import Image
 from dotenv import load_dotenv
-import traceback
 from datetime import datetime, timedelta
+
+import google.genai.types as types
 
 from google import genai
 from google.adk.tools import ToolContext
 from google.cloud import storage
-import google.genai.types as types
 
 from .utils import change_image_background
 
 load_dotenv()
+logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 
 client = genai.Client(
@@ -25,7 +28,11 @@ client = genai.Client(
     project=os.getenv("GOOGLE_CLOUD_PROJECT"),
     location=os.getenv("GOOGLE_CLOUD_LOCATION"),
 )
-
+logger.info(
+    "GenAI Client initialized for Project: %s, Location: %s",
+    os.getenv("GOOGLE_CLOUD_PROJECT"),
+    os.getenv("GOOGLE_CLOUD_LOCATION"),
+)
 
 async def change_background_fast_tool(
     tool_context: ToolContext,
@@ -44,6 +51,10 @@ async def change_background_fast_tool(
     ratio and then sends the request synchronously to the Imagen API. The 
     generated images are then decoded and saved back to the artifact store. The 
     tools returns the artifact Id of the edited image.
+
+    NOTE: This tool should not be used for `image generation` tasks such as 
+    generating new images in different styles, orientation etc. For image 
+    generation tasks, delegate to `image_gen_agent`.
 
     Args:
         tool_context: The execution context, which provides asynchronous methods 
@@ -68,8 +79,21 @@ async def change_background_fast_tool(
               including critical preservation instructions.
             - "message" (str): A human-readable status or error message.
     """
+    logger.info(
+        "Tool 'change_background_fast_tool' started. Artifact ID: %s, Samples: %d",
+        image_artifact_id,
+        sample_count,
+    )
+    logger.debug(
+        "User description: '%s', Aspect Ratio: %s", 
+        description, 
+        aspect_ratio
+    )
+
     try:
         if not image_artifact_id:
+            logger.warning("Execution failed: No image_artifact_id provided.")
+
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
@@ -78,13 +102,11 @@ async def change_background_fast_tool(
                 "message": "No reference image provided. Please provide a reference image to change the background of.",
             }
 
-        logging.info("... Attempting to load the image artifact")
-
+        logger.info("... Attempting to load the image artifact: %s", image_artifact_id)
         image_artifact = await tool_context.load_artifact(filename=image_artifact_id)
 
-        logging.info(">>> Image artifact loaded successfully")
-
         if image_artifact is None:
+            logger.error("Artifact %s not found in tool context.", image_artifact_id)
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
@@ -92,6 +114,8 @@ async def change_background_fast_tool(
                 "used_prompt": description,
                 "message": f"Artifact {image_artifact_id} not found",
             }
+
+        logger.info(">>> Image artifact loaded successfully.")
 
         change_background_prompt = (
             f"USER PROMPT: {description}.\n\n---\n"
@@ -102,19 +126,40 @@ async def change_background_fast_tool(
             "4.  **ONLY CHANGE THE BACKGROUND/SCENE:** Your only task is to place the *unaltered* product into the new scene described in the user prompt."
         )
 
-        logging.info(f"... Calling the imagen API. B64 img: {image_artifact.inline_data.data[:10]}...")
-
+        logger.debug("Final augmented prompt prepared:\n%s", change_background_prompt)
         base64_img_string = base64.b64encode(image_artifact.inline_data.data).decode('utf-8')
 
+        logger.debug(
+            "Base64 encoded image data length: %d bytes. MIME type: %s", 
+            len(base64_img_string),
+            image_artifact.inline_data.mime_type
+        )
+
         supported_aspect_ratios = ["1:1", "4:3", "3:4", "9:16", "16:9"]
-        aspect_ratio = aspect_ratio if aspect_ratio in supported_aspect_ratios else "1:1"
+        
+        if aspect_ratio not in supported_aspect_ratios:
+            logger.warning(
+                "Unsupported aspect ratio '%s' received. Defaulting to '1:1'.", 
+                aspect_ratio
+            )
+            aspect_ratio = "1:1"
 
         if not sample_count:
             sample_count = 1
+            logger.debug("Sample count was zero, set to default 1.")
+        
         elif sample_count > 4:
+            logger.warning("Sample count %d exceeds maximum limit of 4. Clamping to 4.", sample_count)
             sample_count = 4
+        
         else:
             sample_count = int(sample_count)
+
+        logger.info(
+            "Calling external image background editing service (Aspect: %s, Samples: %d)",
+            aspect_ratio,
+            sample_count
+        )
 
         response = change_image_background(
             prompt=change_background_prompt,
@@ -131,56 +176,22 @@ async def change_background_fast_tool(
             author_func = "change_background_fast_tool"
         )
 
-        logging.info(">>> Imagen API returned response successfully")
-
+        logging.info("Imagen API returned response.")
         json_response = json.loads(response.text)
 
-        try:
-            logging.info(f"Imagen Response Keys: {json_response.keys()}")
-        except: pass
-
         if 'error' in list(json_response.keys()):
+            error_msg = json_response.get('error', 'Unknown API Error')
+            logger.error("Imagen API execution error: %s", error_msg)
+
             return {
                 "status": "error",
-                "message": f"An error occured: {json_response['error']}",
+                "message": f"An error occured: {error_msg}",
             }
 
         predictions = json_response['predictions']
 
-        logging.info(f">>> Predictions Response: {predictions[0]['bytesBase64Encoded'][:10]}...")
-
-        artifact_ids = []
-
-        logging.info("... Looking for edited image")
-
-        if predictions:
-            for index, key in enumerate(predictions):
-                artifact_id = f"edited_img_bkg_{tool_context.function_call_id}_{index}.png"
-
-                generated_image_artifact = types.Part.from_bytes(
-                    data=predictions[index]['bytesBase64Encoded'],
-                    mime_type="image/png"
-                )
-                # io.BytesIO(base64.b64decode())
-
-                await tool_context.save_artifact(
-                    filename=artifact_id, 
-                    artifact=generated_image_artifact
-                )
-
-                logging.info(f"...  Edited image with id {artifact_id} saved to artifact store")
-
-                artifact_ids.append(artifact_id)
-
-            return {
-                "status": "success",
-                "tool_response_artifact_ids": ", ".join(artifact_ids) if artifact_ids else "",
-                "tool_input_artifact_id": image_artifact_id,
-                "used_prompt": change_background_prompt,
-                "message": f"Input image updated successfully.",
-            }
-
-        else:
+        if not predictions:
+            logger.error("Imagen API succeeded but returned zero predictions.")
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
@@ -189,17 +200,72 @@ async def change_background_fast_tool(
                 "message": f"No images generated",
             }
 
-    except Exception as e:
-        traceback_str = traceback.format_exc()
-        logging.error(f"Critical error in change_background_tool:\n{traceback_str}")
+        artifact_ids = []
+        logger.info("Processing %d generated images.", len(predictions))
+
+        for index, prediction in enumerate(predictions):
+            artifact_id = f"edited_img_bkg_{tool_context.function_call_id}_{index}.png"
+
+            base64_data = prediction.get('bytesBase64Encoded')
+            if not base64_data:
+                 logger.error("Prediction %d is missing 'bytesBase64Encoded' data. Skipping.", index)
+                 continue
+
+            generated_image_artifact = types.Part.from_bytes(
+                data=base64_data,
+                mime_type="image/png"
+            )
+
+            await tool_context.save_artifact(
+                filename=artifact_id, 
+                artifact=generated_image_artifact
+            )
+
+            logging.info("Edited image with id %s saved to artifact store", artifact_id)
+            artifact_ids.append(artifact_id)
+
+        logger.info(
+            "Successfully generated and saved %d new artifacts.", 
+            len(artifact_ids)
+        )
+
+        return {
+            "status": "success",
+            "tool_response_artifact_ids": ", ".join(artifact_ids) if artifact_ids else "",
+            "tool_input_artifact_id": image_artifact_id,
+            "used_prompt": change_background_prompt,
+            "message": f"Input image updated successfully.",
+        }
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(
+            "HTTP Error during API call: %s. Response: %s", 
+            http_err, 
+            http_err.response.text if http_err.response is not None else "No response",
+            exc_info=True
+        )
 
         return {
             "status": "error",
             "tool_response_artifact_id": "",
             "tool_input_artifact_ids": image_artifact_id,
             "used_prompt": description,
-            "message": f"Error generating image: {str(e)}",
-            "traceback_details": traceback_str 
+            "message": f"HTTP Error generating image: {str(http_err)}",
+        }
+
+    except Exception as error:
+        logger.error(
+            "An unexpected error occurred in 'change_background_fast_tool': %s", 
+            error, 
+            exc_info=True
+        )
+
+        return {
+            "status": "error",
+            "tool_response_artifact_id": "",
+            "tool_input_artifact_ids": image_artifact_id,
+            "used_prompt": description,
+            "message": f"Error generating image: {str(error)}",
         }
 
 
@@ -219,6 +285,10 @@ async def change_background_capability_tool(
     request synchronously to the Imagen API. The generated images are then 
     decoded and saved back to the artifact store. The tools returns the 
     artifact Id of the edited image.
+
+    NOTE: This tool should not be used for `image generation` tasks such as 
+    generating new images in different styles, orientation etc. For image 
+    generation tasks, delegate to `image_gen_agent`.
 
     Args:
         tool_context: The execution context, which provides asynchronous methods 
@@ -240,8 +310,16 @@ async def change_background_capability_tool(
               including critical preservation instructions.
             - "message" (str): A human-readable status or error message.
     """
+    logger.info(
+        "Tool 'change_background_capability_tool' started. Artifact ID: %s, Samples: %d",
+        image_artifact_id,
+        sample_count,
+    )
+    logger.debug("User description: '%s'", description)
+
     try:
         if not image_artifact_id:
+            logger.warning("Execution failed: No image_artifact_id provided.")
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
@@ -250,13 +328,11 @@ async def change_background_capability_tool(
                 "message": "No reference image provided. Please provide a reference image to change the background of.",
             }
 
-        logging.info("... Attempting to load the image artifact")
-
+        logger.info("... Attempting to load the image artifact: %s", image_artifact_id)
         image_artifact = await tool_context.load_artifact(filename=image_artifact_id)
 
-        logging.info(">>> Image artifact loaded successfully")
-
         if image_artifact is None:
+            logger.error("Artifact %s not found in tool context.", image_artifact_id)
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
@@ -264,6 +340,8 @@ async def change_background_capability_tool(
                 "used_prompt": description,
                 "message": f"Artifact {image_artifact_id} not found",
             }
+
+        logger.info("Image artifact loaded successfully.")
 
         change_background_prompt = (
             f"USER PROMPT: {description}.\n\n---\n"
@@ -274,16 +352,25 @@ async def change_background_capability_tool(
             "4.  **ONLY CHANGE THE BACKGROUND/SCENE:** Your only task is to place the *unaltered* product into the new scene described in the user prompt."
         )
 
-        logging.info(f"... Calling the imagen API. B64 img: {image_artifact.inline_data.data[:10]}...")
-
+        logger.debug("Final augmented prompt prepared:\n%s", change_background_prompt)
         base64_img_string = base64.b64encode(image_artifact.inline_data.data).decode('utf-8')
+
+        logger.debug(
+            "Base64 encoded image data length: %d bytes. MIME type: %s", 
+            len(base64_img_string),
+            image_artifact.inline_data.mime_type
+        )
 
         if not sample_count:
             sample_count = 1
+            logger.debug("Sample count was zero, set to default 1.")
         elif sample_count > 4:
             sample_count = 4
+            logger.warning("Sample count %d exceeds maximum limit of 4. Clamping to 4.", sample_count)
         else:
             sample_count = int(sample_count)
+
+        logger.info("Calling Imagen background editing service (Samples: %d)", sample_count)
 
         response = change_image_background(
             prompt=change_background_prompt,
@@ -297,59 +384,24 @@ async def change_background_capability_tool(
             isProductImage = True,
             disablePersonFace = True,
             aspect_ratio="1:1",
-            author_func = "change_background_capability_tool"
+            author_func="change_background_capability_tool"
         )
 
-        logging.info(">>> Imagen API returned response successfully")
-
+        logging.info("Imagen API returned response successfully")
         json_response = json.loads(response.text)
 
-        try:
-            logging.info(f"Imagen Response Keys: {json_response.keys()}")
-        except: pass
-
         if 'error' in list(json_response.keys()):
+            error_msg = json_response.get('error', 'Unknown API Error')
+            logger.error("Imagen API execution error: %s", error_msg)
             return {
                 "status": "error",
-                "message": f"An error occured: {json_response['error']}",
+                "message": f"An error occured: {error_msg}",
             }
 
-        predictions = json_response['predictions']
+        predictions = json_response.get('predictions', [])
 
-        logging.info(f">>> Predictions Response: {predictions[0]['bytesBase64Encoded'][:10]}...")
-
-        artifact_ids = []
-
-        logging.info("... Looking for edited image")
-
-        if predictions:
-            for index, key in enumerate(predictions):
-                artifact_id = f"edited_img_bkg_{tool_context.function_call_id}_{index}.png"
-
-                generated_image_artifact = types.Part.from_bytes(
-                    data=predictions[index]['bytesBase64Encoded'],
-                    mime_type="image/png"
-                )
-                # io.BytesIO(base64.b64decode())
-
-                await tool_context.save_artifact(
-                    filename=artifact_id, 
-                    artifact=generated_image_artifact
-                )
-
-                logging.info(f"...  Edited image with id {artifact_id} saved to artifact store")
-
-                artifact_ids.append(artifact_id)
-
-            return {
-                "status": "success",
-                "tool_response_artifact_ids": ", ".join(artifact_ids) if artifact_ids else "",
-                "tool_input_artifact_id": image_artifact_id,
-                "used_prompt": change_background_prompt,
-                "message": f"Input image updated successfully.",
-            }
-
-        else:
+        if not predictions:
+            logger.error("Imagen API succeeded but returned zero predictions.")
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
@@ -358,17 +410,72 @@ async def change_background_capability_tool(
                 "message": f"No images generated",
             }
 
-    except Exception as e:
-        traceback_str = traceback.format_exc()
-        logging.error(f"Critical error in change_background_tool:\n{traceback_str}")
+        artifact_ids = []
+        logger.info("Processing %d edited images.", len(predictions))
 
+        for index, prediction in enumerate(predictions):
+            artifact_id = f"edited_img_bkg_{tool_context.function_call_id}_{index}.png"
+
+            base64_data = prediction.get('bytesBase64Encoded')
+            if not base64_data:
+                 logger.error("Prediction %d is missing 'bytesBase64Encoded' data. Skipping.", index)
+                 continue
+
+            generated_image_artifact = types.Part.from_bytes(
+                data=base64_data,
+                mime_type="image/png"
+            )
+
+            await tool_context.save_artifact(
+                filename=artifact_id, 
+                artifact=generated_image_artifact
+            )
+
+            logger.info(
+                "Edited image with id %s saved to artifact store.", 
+                artifact_id
+            )
+
+            artifact_ids.append(artifact_id)
+        
+        logger.info(
+            "Successfully edited and saved %d new artifacts.", 
+            len(artifact_ids)
+        )
+
+        return {
+            "status": "success",
+            "tool_response_artifact_ids": ", ".join(artifact_ids) if artifact_ids else "",
+            "tool_input_artifact_id": image_artifact_id,
+            "used_prompt": change_background_prompt,
+            "message": f"Input image updated successfully.",
+        }
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(
+            "HTTP Error during API call: %s. Response: %s", 
+            http_err, 
+            http_err.response.text if http_err.response is not None else "No response",
+            exc_info=True
+        )
         return {
             "status": "error",
             "tool_response_artifact_id": "",
             "tool_input_artifact_ids": image_artifact_id,
             "used_prompt": description,
-            "message": f"Error generating image: {str(e)}",
-            "traceback_details": traceback_str 
+            "message": f"HTTP Error generating image: {str(http_err)}",
         }
 
-
+    except Exception as error:
+        logger.error(
+            "An unexpected error occurred in 'change_background_capability_tool': %s", 
+            error, 
+            exc_info=True
+        )
+        return {
+            "status": "error",
+            "tool_response_artifact_id": "",
+            "tool_input_artifact_ids": image_artifact_id,
+            "used_prompt": description,
+            "message": f"Error generating image: {str(error)}",
+        }

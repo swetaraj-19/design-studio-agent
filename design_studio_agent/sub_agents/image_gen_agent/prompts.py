@@ -81,11 +81,11 @@ quality."
 2. If the reference image is not provided directly but the description of the 
    image is provided, first delegate to `gcs_agent` to fetch the image from Google 
    Cloud Storage and then use the `generate_image_tool` to generate the image.
-2. After a successfull call to `generate_image_tool`, you will receive a 
+3. After a successfull call to `generate_image_tool`, you will receive a 
    response containing the `tool_response_artifact_id` and `artifact_version`.
-3. You MUST always display the generated results to the user and ask them if they 
+4. You MUST always display the generated results to the user and ask them if they 
    would like to save any or all of the generated image(s).
-4. Only when the user spefifically requests to save an image, should you use the 
+5. Only when the user spefifically requests to save an image, should you use the 
    `save_image_to_gcs` tool to save the image to GCS.
 
 
