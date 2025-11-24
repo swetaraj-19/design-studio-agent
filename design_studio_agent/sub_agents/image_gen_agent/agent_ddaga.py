@@ -1,0 +1,61 @@
+import logging
+import sys
+import warnings
+from dotenv import load_dotenv
+
+from google.genai import types
+from google.genai import Client
+
+from google.adk import Agent
+from google.adk.tools import load_artifacts
+from google.adk.tools.tool_context import ToolContext
+
+from .callbacks import before_image_gen_model_callback
+from .config import (
+    IMAGE_GEN_AGENT_MODEL, 
+    IMAGE_GEN_AGENT_TEMPERATURE, 
+    IMAGE_GEN_AGENT_MAX_TOKENS
+)
+from .prompts import IMAGE_GEN_AGENT_DESCRIPTION, IMAGE_GEN_AGENT_INSTRUCTION
+
+from .tools import generate_image_tool
+from ...tools.utils import save_image_to_gcs
+
+load_dotenv()
+
+# --- LOGGING CONFIGURATION START ---
+# Configure the root logger to ensure logs are captured by the Agent Engine/Cloud environment
+# We use sys.stdout because many cloud runtimes capture stdout by default.
+logging.basicConfig(
+    level=logging.DEBUG,  # Set to DEBUG to see all trace details
+    format="%(asctime)s - [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Create a specific logger for this module
+logger = logging.getLogger(__name__)
+logger.info("Initializing Image Gen Agent...")
+# --- LOGGING CONFIGURATION END ---
+
+warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
+
+image_gen_agent = Agent(
+    model=IMAGE_GEN_AGENT_MODEL,
+    name='image_gen_agent',
+    description=IMAGE_GEN_AGENT_DESCRIPTION,
+    instruction=IMAGE_GEN_AGENT_INSTRUCTION,
+    generate_content_config=types.GenerateContentConfig(
+        temperature=IMAGE_GEN_AGENT_TEMPERATURE,
+        max_output_tokens=IMAGE_GEN_AGENT_MAX_TOKENS,
+    ),
+    include_contents="default",
+    tools=[
+        generate_image_tool,
+        save_image_to_gcs
+    ],
+    before_model_callback=before_image_gen_model_callback
+)
+
+logger.info("Image Gen Agent initialized successfully.")
