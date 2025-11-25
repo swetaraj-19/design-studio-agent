@@ -1,3 +1,4 @@
+import sys
 import logging
 import warnings
 from dotenv import load_dotenv
@@ -19,6 +20,15 @@ from .prompts import GCS_AGENT_DESCRIPTION, GCS_AGENT_INSTRUCTION
 from .tools import get_image_from_gcs, save_image_to_gcs, search_images_in_gcs
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
 logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 

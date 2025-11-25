@@ -23,17 +23,6 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 
-client = genai.Client(
-    vertexai=True,
-    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
-    location=os.getenv("GOOGLE_CLOUD_LOCATION"),
-)
-logger.info(
-    "GenAI Client initialized for Project: %s, Location: %s",
-    os.getenv("GOOGLE_CLOUD_PROJECT"),
-    os.getenv("GOOGLE_CLOUD_LOCATION"),
-)
-
 async def change_background_fast_tool(
     tool_context: ToolContext,
     description: str,

@@ -17,17 +17,6 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 
-client = genai.Client(
-    vertexai=True,
-    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
-    location=os.getenv("GOOGLE_CLOUD_LOCATION"),
-)
-logger.info(
-    "GenAI Client initialized for Project: %s, Location: %s",
-    os.getenv("GOOGLE_CLOUD_PROJECT"),
-    os.getenv("GOOGLE_CLOUD_LOCATION"),
-)
-
 async def generate_image_tool(
     tool_context: ToolContext,
     description: str,
@@ -81,6 +70,18 @@ async def generate_image_tool(
 
     try:
         ALLOWED_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
+
+        try:
+            client = genai.Client(
+                vertexai=True,
+                project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+                location=os.getenv("GOOGLE_CLOUD_LOCATION"),
+            )
+            logger.debug("Gen AI client instantiated successfully within tool scope.")
+
+        except Exception as e:
+            logger.critical("Failed to initialize GenAI Client: %s", e, exc_info=True)
+            return {"status": "error", "message": "Internal tool configuration error."}
 
         if not image_artifact_ids:
             logger.warning("Execution failed: No image_artifact_ids provided.")
