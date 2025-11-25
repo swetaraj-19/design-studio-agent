@@ -61,7 +61,7 @@ async def change_background_fast_tool(
     Returns:
         dict: A structured dictionary reporting the tool's execution result:
             - "status" (str): "success" or "error".
-            - "tool_response_artifact_ids" (str): Comma-separated list of IDs for 
+            - "tool_response_artifact_id" (str): Comma-separated list of IDs for 
               the newly generated image artifacts, if successful.
             - "tool_input_artifact_id" (str): The ID of the original input image.
             - "used_prompt" (str): The final, augmented prompt sent to the API, 
@@ -86,7 +86,7 @@ async def change_background_fast_tool(
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
-                "tool_input_artifact_ids": "",
+                "tool_input_artifact_id": "",
                 "used_prompt": description,
                 "message": "No reference image provided. Please provide a reference image to change the background of.",
             }
@@ -99,7 +99,7 @@ async def change_background_fast_tool(
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
-                "tool_input_artifact_ids": "",
+                "tool_input_artifact_id": "",
                 "used_prompt": description,
                 "message": f"Artifact {image_artifact_id} not found",
             }
@@ -150,20 +150,31 @@ async def change_background_fast_tool(
             sample_count
         )
 
-        response = change_image_background(
-            prompt=change_background_prompt,
-            negativePrompt = "Dark colors, dark background, low res, low quality",
-            mode = "backgroundEditing",
-            base64_encoded_image = base64_img_string,
-            sampleImageSize = 1024,
-            sampleCount = sample_count,
-            guidanceScale = "14",
-            seed = 257,
-            isProductImage = True,
-            disablePersonFace = True,
-            aspect_ratio = aspect_ratio,
-            author_func = "change_background_fast_tool"
-        )
+        try:
+            response = change_image_background(
+                prompt=change_background_prompt,
+                negativePrompt = "Dark colors, dark background, low res, low quality",
+                mode = "backgroundEditing",
+                base64_encoded_image = base64_img_string,
+                sampleImageSize = 1024,
+                sampleCount = sample_count,
+                guidanceScale = "14",
+                seed = 257,
+                isProductImage = True,
+                disablePersonFace = True,
+                aspect_ratio = aspect_ratio,
+                author_func = "change_background_fast_tool"
+            )
+        
+        except Exception as error:
+            logger.error("Error calling Imagen API: %s", error, exc_info=True)
+            return {
+                "status": "error",
+                "tool_response_artifact_id": "",
+                "tool_input_artifact_id": image_artifact_id,
+                "used_prompt": description,
+                "message": f"Error changing background: {str(error)}",
+            }
 
         logging.info("Imagen API returned response.")
         json_response = json.loads(response.text)
@@ -220,7 +231,7 @@ async def change_background_fast_tool(
 
         return {
             "status": "success",
-            "tool_response_artifact_ids": ", ".join(artifact_ids) if artifact_ids else "",
+            "tool_response_artifact_id": ", ".join(artifact_ids) if artifact_ids else "",
             "tool_input_artifact_id": image_artifact_id,
             "used_prompt": change_background_prompt,
             "message": f"Input image updated successfully.",
@@ -237,7 +248,7 @@ async def change_background_fast_tool(
         return {
             "status": "error",
             "tool_response_artifact_id": "",
-            "tool_input_artifact_ids": image_artifact_id,
+            "tool_input_artifact_id": image_artifact_id,
             "used_prompt": description,
             "message": f"HTTP Error generating image: {str(http_err)}",
         }
@@ -252,7 +263,7 @@ async def change_background_fast_tool(
         return {
             "status": "error",
             "tool_response_artifact_id": "",
-            "tool_input_artifact_ids": image_artifact_id,
+            "tool_input_artifact_id": image_artifact_id,
             "used_prompt": description,
             "message": f"Error generating image: {str(error)}",
         }
@@ -292,7 +303,7 @@ async def change_background_capability_tool(
     Returns:
         dict: A structured dictionary reporting the tool's execution result:
             - "status" (str): "success" or "error".
-            - "tool_response_artifact_ids" (str): Comma-separated list of IDs for 
+            - "tool_response_artifact_id" (str): Comma-separated list of IDs for 
               the newly generated image artifacts, if successful.
             - "tool_input_artifact_id" (str): The ID of the original input image.
             - "used_prompt" (str): The final, augmented prompt sent to the API, 
@@ -312,7 +323,7 @@ async def change_background_capability_tool(
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
-                "tool_input_artifact_ids": "",
+                "tool_input_artifact_id": "",
                 "used_prompt": description,
                 "message": "No reference image provided. Please provide a reference image to change the background of.",
             }
@@ -325,7 +336,7 @@ async def change_background_capability_tool(
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
-                "tool_input_artifact_ids": "",
+                "tool_input_artifact_id": "",
                 "used_prompt": description,
                 "message": f"Artifact {image_artifact_id} not found",
             }
@@ -361,20 +372,30 @@ async def change_background_capability_tool(
 
         logger.info("Calling Imagen background editing service (Samples: %d)", sample_count)
 
-        response = change_image_background(
-            prompt=change_background_prompt,
-            negativePrompt = "Dark colors",
-            mode = "backgroundEditing",
-            base64_encoded_image = base64_img_string,
-            sampleImageSize = 1024,
-            sampleCount = sample_count,
-            guidanceScale = "14",
-            seed = 257,
-            isProductImage = True,
-            disablePersonFace = True,
-            aspect_ratio="1:1",
-            author_func="change_background_capability_tool"
-        )
+        try:
+            response = change_image_background(
+                prompt=change_background_prompt,
+                negativePrompt = "Dark colors",
+                mode = "backgroundEditing",
+                base64_encoded_image = base64_img_string,
+                sampleImageSize = 1024,
+                sampleCount = sample_count,
+                guidanceScale = "14",
+                seed = 257,
+                isProductImage = True,
+                disablePersonFace = True,
+                aspect_ratio="1:1",
+                author_func="change_background_capability_tool"
+            )
+        
+        except Exception as error:
+            return {
+                "status": "error",
+                "tool_response_artifact_id": "",
+                "tool_input_artifact_id": image_artifact_id,
+                "used_prompt": description,
+                "message": f"Error changing background: {str(error)}",
+            }
 
         logging.info("Imagen API returned response successfully")
         json_response = json.loads(response.text)
@@ -434,7 +455,7 @@ async def change_background_capability_tool(
 
         return {
             "status": "success",
-            "tool_response_artifact_ids": ", ".join(artifact_ids) if artifact_ids else "",
+            "tool_response_artifact_id": ", ".join(artifact_ids) if artifact_ids else "",
             "tool_input_artifact_id": image_artifact_id,
             "used_prompt": change_background_prompt,
             "message": f"Input image updated successfully.",
@@ -450,7 +471,7 @@ async def change_background_capability_tool(
         return {
             "status": "error",
             "tool_response_artifact_id": "",
-            "tool_input_artifact_ids": image_artifact_id,
+            "tool_input_artifact_id": image_artifact_id,
             "used_prompt": description,
             "message": f"HTTP Error generating image: {str(http_err)}",
         }
@@ -464,7 +485,7 @@ async def change_background_capability_tool(
         return {
             "status": "error",
             "tool_response_artifact_id": "",
-            "tool_input_artifact_ids": image_artifact_id,
+            "tool_input_artifact_id": image_artifact_id,
             "used_prompt": description,
             "message": f"Error generating image: {str(error)}",
         }

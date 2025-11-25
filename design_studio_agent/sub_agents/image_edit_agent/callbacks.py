@@ -88,63 +88,82 @@ async def before_image_edit_model_callback(
 ) -> LlmResponse | None:
     logger.info("Executing before_image_edit_model_callback.")
     
-    content_count = len(llm_request.contents)
-    logger.debug("LLM Request contains %d content block(s).", content_count)
+    try:
+        content_count = len(llm_request.contents)
+        logger.debug("LLM Request contains %d content block(s).", content_count)
 
-    for content_idx, content in enumerate(llm_request.contents):
-        if not content.parts:
-            logger.warning("Content block %d has no parts. Skipping.", content_idx)
-            continue
+        for content_idx, content in enumerate(llm_request.contents):
+            if not content.parts:
+                logger.warning("Content block %d has no parts. Skipping.", content_idx)
+                continue
 
-        request_parts = []
+            request_parts = []
 
-        part_count = len(content.parts)
-        logger.debug("Content block %d has %d parts to process.", content_idx, part_count)
+            part_count = len(content.parts)
+            logger.debug("Content block %d has %d parts to process.", content_idx, part_count)
 
-        for idx, part in enumerate(content.parts):
-            if part.inline_data:
-                part_type = "InlineData (User Upload)"
-                processed_parts = await _process_user_uploaded_artifact(
-                    part, 
-                    callback_context
-                )
-            
-            elif part.function_response:
-                func_name = part.function_response.name
-                part_type = f"FunctionResponse: {func_name}"
+            for idx, part in enumerate(content.parts):
+                if part.inline_data:
+                    try:
+                        part_type = "InlineData (User Upload)"
+                        processed_parts = await _process_user_uploaded_artifact(
+                            part, 
+                            callback_context
+                        )
+                
+                    except Exception as error:
+                        logger.error("Image edit agent callback error with inline data processing: %s", error, exc_info=True)
+                        continue
 
-                if part.function_response.name in [
-                    "generate_image_tool", 
-                    "change_background_capability_tool", 
-                    "change_background_fast_tool",
-                ]:
-                    processed_parts = await _process_generated_artifact(
-                        part, 
-                        callback_context
-                    )
+                elif part.function_response:
+                    try:
+                        func_name = part.function_response.name
+                        part_type = f"FunctionResponse: {func_name}"
+
+                        if part.function_response.name in [
+                            "generate_image_tool", 
+                            "change_background_capability_tool", 
+                            "change_background_fast_tool",
+                        ]:
+                            processed_parts = await _process_generated_artifact(
+                                part, 
+                                callback_context
+                            )
+
+                        else:
+                            processed_parts = [part]
+                            logger.debug(
+                                "Skipping artifact processing for unhandled function response: %s", 
+                                func_name
+                            )
+                    
+                    except Exception as error:
+                        logger.error("Image edit agent callback error with processing func response: %s", error, exc_info=True)
+                        continue
 
                 else:
+                    part_type = "Text"
                     processed_parts = [part]
-                    logger.debug(
-                        "Skipping artifact processing for unhandled function response: %s", 
-                        func_name
-                    )
 
-            else:
-                part_type = "Text"
-                processed_parts = [part]
+                logger.debug(
+                    "Part %d/%d (Type: %s) processed. %d new parts generated.", 
+                    idx + 1, 
+                    part_count, 
+                    part_type,
+                    len(processed_parts)
+                )
 
-            logger.debug(
-                "Part %d/%d (Type: %s) processed. %d new parts generated.", 
-                idx + 1, 
-                part_count, 
-                part_type,
-                len(processed_parts)
-            )
+                request_parts.extend(processed_parts)
 
-            request_parts.extend(processed_parts)
+            content.parts = request_parts
 
-        content.parts = request_parts
-
-    logger.info("Finished execution of before_image_edit_model_callback.")
-    return None
+        logger.info("Finished execution of before_image_edit_model_callback.")
+        return None
+    
+    except Exception as error:
+        logger.error("Error in before_image_edit_model_callback: %s", error, exc_info=True)
+        
+        return {
+            "status": "error",
+            "message": f"Error in before_image_edit_model_callback: {str(error)}"
+        }

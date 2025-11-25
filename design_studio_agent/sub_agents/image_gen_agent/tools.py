@@ -56,7 +56,7 @@ async def generate_image_tool(
     Returns:
         dict: A dictionary containing the operation result:
             - 'tool_response_artifact_id': Artifact ID for the generated image
-            - 'tool_input_artifact_ids': Comma-separated list of input artifact IDs
+            - 'tool_input_artifact_id': Comma-separated list of input artifact IDs
             - 'used_prompt': The full image generation prompt used
             - 'status': Success or error status
             - 'message': Additional information or error details
@@ -88,7 +88,7 @@ async def generate_image_tool(
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
-                "tool_input_artifact_ids": "",
+                "tool_input_artifact_id": "",
                 "used_prompt": description,
                 "message": "No reference image provided. Please provide a reference image to generate the image.",
             }
@@ -105,7 +105,7 @@ async def generate_image_tool(
                 return {
                     "status": "error",
                     "tool_response_artifact_id": "",
-                    "tool_input_artifact_ids": "",
+                    "tool_input_artifact_id": "",
                     "used_prompt": description,
                     "message": f"Artifact {img_id} not found",
                 }
@@ -123,6 +123,15 @@ async def generate_image_tool(
             "3.  **PRESERVE APPEARANCE:** The product's shape, color, design, and label must remain identical to the reference image.\n"
             "4.  **ONLY CHANGE THE BACKGROUND/SCENE:** Your only task is to place the *unaltered* product into the new scene described in the user prompt."
         )
+
+        if not image_artifacts:
+            return {
+                "status": "error",
+                "tool_response:artifact_id": "",
+                "tool_input_artifact_id": ", ".join(image_artifact_ids),
+                "used_prompt": image_generation_prompt,
+                "message": "Please provide a reference image to generate the image."
+            }
 
         logger.debug("Final augmented prompt prepared:\n%s", image_generation_prompt)
         contents = image_artifacts + [image_generation_prompt]
@@ -148,17 +157,28 @@ async def generate_image_tool(
             candidate_count,
         )
 
-        response = await client.aio.models.generate_content(
-            model=IMAGE_GENERATION_TOOL_MODEL,
-            contents=contents,
-            config=genai.types.GenerateContentConfig(
-                response_modalities=["Image"],
-                candidate_count=candidate_count,
-                image_config=genai.types.ImageConfig(
-                    aspect_ratio=aspect_ratio,
-                )
-            ),
-        )
+        try:
+            response = await client.aio.models.generate_content(
+                model=IMAGE_GENERATION_TOOL_MODEL,
+                contents=contents,
+                config=genai.types.GenerateContentConfig(
+                    response_modalities=["Image"],
+                    candidate_count=candidate_count,
+                    image_config=genai.types.ImageConfig(
+                        aspect_ratio=aspect_ratio,
+                        image_size="4K"
+                    )
+                ),
+            )
+        
+        except Exception as error:
+            return {
+                "status": "error",
+                "tool_response_artifact_id": "",
+                "tool_input_artifact_id": ", ".join(image_artifact_ids),
+                "used_prompt": image_generation_prompt,
+                "message": f"Error generating image: {str(error)}",
+            }
 
         logger.info("GenAI API call completed successfully.")
 
@@ -170,7 +190,7 @@ async def generate_image_tool(
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
-                "tool_input_artifact_ids": ", ".join(image_artifact_ids),
+                "tool_input_artifact_id": ", ".join(image_artifact_ids),
                 "used_prompt": image_generation_prompt,
                 "message": "Image generation failed: API returned no image data.",
             }
@@ -199,7 +219,7 @@ async def generate_image_tool(
             return {
                 "status": "error",
                 "tool_response_artifact_id": "",
-                "tool_input_artifact_ids": ", ".join(image_artifact_ids),
+                "tool_input_artifact_id": ", ".join(image_artifact_ids),
                 "used_prompt": image_generation_prompt,
                 "message": "Image generation failed: API returned image data but it was not inline data.",
             }
@@ -209,7 +229,7 @@ async def generate_image_tool(
         return {
             "status": "success",
             "tool_response_artifact_id": artifact_id,
-            "tool_input_artifact_ids": input_ids_str,
+            "tool_input_artifact_id": input_ids_str,
             "used_prompt": image_generation_prompt,
             "message": f"Image generated successfully using {len(image_artifacts)} input image(s)",
         }
@@ -227,7 +247,7 @@ async def generate_image_tool(
         return {
             "status": "error",
             "tool_response_artifact_id": "",
-            "tool_input_artifact_ids": input_ids_str,
+            "tool_input_artifact_id": input_ids_str,
             "used_prompt": description,
             "message": f"Error generating image: {str(error)}",
         }
