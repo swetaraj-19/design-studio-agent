@@ -166,7 +166,6 @@ async def generate_image_tool(
                     candidate_count=candidate_count,
                     image_config=genai.types.ImageConfig(
                         aspect_ratio=aspect_ratio,
-                        image_size="4K"
                     )
                 ),
             )
