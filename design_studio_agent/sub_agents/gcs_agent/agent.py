@@ -17,7 +17,9 @@ from .config import (
 )
 
 from .prompts import GCS_AGENT_DESCRIPTION, GCS_AGENT_INSTRUCTION
-from .tools import get_image_from_gcs, save_image_to_gcs, search_images_in_gcs
+from .tools import get_image_from_gcs, search_images_in_gcs
+from ...tools.utils import save_image_to_gcs
+
 
 load_dotenv()
 

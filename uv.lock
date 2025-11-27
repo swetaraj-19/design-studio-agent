@@ -313,7 +313,7 @@ dependencies = [
     { name = "fuzzywuzzy" },
     { name = "google-adk" },
     { name = "google-cloud-aiplatform", extra = ["agent-engines"] },
-    { name = "google-cloud-storage" },
+    { name = "google-cloud-iam" },
     { name = "google-genai" },
     { name = "levenshtein" },
     { name = "pillow" },
@@ -325,7 +325,7 @@ requires-dist = [
     { name = "fuzzywuzzy", specifier = ">=0.18.0" },
     { name = "google-adk", specifier = ">=1.19.0" },
     { name = "google-cloud-aiplatform", extras = ["agent-engines"], specifier = "==1.125.0" },
-    { name = "google-cloud-storage", specifier = ">=2.19.0" },
+    { name = "google-cloud-iam", specifier = ">=2.20.0" },
     { name = "google-genai", specifier = ">=1.52.0" },
     { name = "levenshtein", specifier = ">=0.27.3" },
     { name = "pillow", specifier = ">=12.0.0" },
@@ -624,6 +624,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8f/cd/b33bbc4b096d937abee5ebfad3908b2bdc65acd1582191aa33beaa2b70a5/google_cloud_discoveryengine-0.13.12.tar.gz", hash = "sha256:d6b9f8fadd8ad0d2f4438231c5eb7772a317e9f59cafbcbadc19b5d54c609419", size = 3582382, upload-time = "2025-09-22T16:51:14.052Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/93/70/607f6011648f603d35e60a16c34aee68a0b39510e4268d4859f3268684f9/google_cloud_discoveryengine-0.13.12-py3-none-any.whl", hash = "sha256:295f8c6df3fb26b90fb82c2cd6fbcf4b477661addcb19a94eea16463a5c4e041", size = 3337248, upload-time = "2025-09-22T16:50:57.375Z" },
+]
+
+[[package]]
+name = "google-cloud-iam"
+version = "2.20.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "grpc-google-iam-v1" },
+    { name = "grpcio" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f0/53/e73091b5f012e669d1ec501b70c99e8e8e86f6fa09cf56f47ae3fb0395a5/google_cloud_iam-2.20.0.tar.gz", hash = "sha256:06568ed8313f59fac46d21a5aae4c54eb1dda9f6bcecf2736c58ab1065dc9173", size = 480552, upload-time = "2025-10-14T15:42:54.9Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f7/78/664349481896f85d7e79a1fdd5d322e9052126da8065f67c75ad2c17c97a/google_cloud_iam-2.20.0-py3-none-any.whl", hash = "sha256:643fcf6db3100772f222c7173bc1af15541a05ec1c43785191e835146ed150b8", size = 448329, upload-time = "2025-10-14T15:42:40.287Z" },
 ]
 
 [[package]]
