@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "absl-py>=2.3.1",
     "fuzzywuzzy>=0.18.0",
-    "google-adk>=1.19.0",
+    "google-adk==1.17.0",
     "google-cloud-aiplatform[agent-engines]==1.125.0",
     "google-cloud-iam>=2.20.0",
     "google-genai>=1.52.0",

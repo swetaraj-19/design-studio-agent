@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 
 root_agent = LlmAgent(
-    name="root_agent",
+    name="design_studio_agent",
     model=ROOT_AGENT_MODEL,
     description=ROOT_AGENT_DESCRIPTION,
     instruction=ROOT_AGENT_INSTRUCTION,
