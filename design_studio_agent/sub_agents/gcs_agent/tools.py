@@ -56,6 +56,7 @@ def search_images_in_gcs(search_query: str):
 
         client = storage.Client()
         bucket = client.bucket(BUCKET_NAME)
+
         prefix = "high_resolution_images"
 
         logger.info(
@@ -64,7 +65,7 @@ def search_images_in_gcs(search_query: str):
             prefix
         )
 
-        blobs = bucket.list_blobs(prefix=prefix)
+        blobs = list(bucket.list_blobs(prefix=prefix))
         matching_files = []
 
         file_count = 0
@@ -72,18 +73,40 @@ def search_images_in_gcs(search_query: str):
         for blob in blobs:
             file_count += 1
 
-            score = fuzz.token_set_ratio(
+            clean_filename = blob.name.split("/")[-1].rsplit('.', 1)[0]
+            clean_filename = clean_filename.replace('_', ' ').replace('-', ' ')
+
+            score = fuzz.partial_ratio(
                 search_query.lower(), 
-                blob.name.lower()
+                clean_filename.lower()
             )
 
             if score > 75:
                 matching_files.append((blob.name, score))
+
                 logger.debug(
                     "Found match: %s with score %d", 
                     blob.name, 
                     score
                 )
+        
+        if not matching_files:
+            for blob in blobs:
+                file_count += 1
+
+                score = fuzz.token_set_ratio(
+                    search_query.lower(), 
+                    blob.name.lower()
+                )
+
+                if score > 75:
+                    matching_files.append((blob.name, score))
+
+                    logger.debug(
+                        "Found match: %s with score %d", 
+                        blob.name, 
+                        score
+                    )
 
         logger.info(
             "Finished fuzzy search. Processed %d files. Found %d matches.", 
