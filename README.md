@@ -1,12 +1,13 @@
-# Henkel Design Studio Multi-Agent System
+# Henkel Design Studio Agent 🎨
 
-The **Design Studio Agent** is a Multi-Agent System (MAS) built using Google's Agent Development Kit (ADK) and Gemini models. It acts as an AI-powered creative studio capable of generating marketing imagery, and performing high-fidelity image editing while preserving product integrity.
+Design Studio is an AI agent system designed to streamline the creation of marketing assets. Built on the Google Cloud Agent Development Kit (ADK), it orchestrates Gemini 2.5 Flash and Imagen 3.0/4.0 models to source products, generate photorealistic marketing scenes, and perform precise background editing while strictly preserving brand identity.
 
 ## 🏗 Architecture
 
 The system consists of a **Root Agent** that orchestrates three specialized sub-agents:
 
 1.  **Root Agent (`design_studio_agent`)**:
+    *   **Model:** `gemini-2.5-flash`
     *   **Role:** The interface layer. It analyzes user requests and routes them to the appropriate sub-agent.
     *   **Capabilities:** Context understanding, delegation, and error handling.
 
@@ -129,4 +130,24 @@ The agent is designed to handle a full asset creation workflow. Below are exampl
 ## 🛠 Deployment
 
 ### ADK Web (Local Host)
+
+**Running Locally**
+```bash
+# Clone repository
+git clone <repo-url>
+cd design_studio_agent
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+uv sync --active 
+gcloud auth application-default login
+
+adk web
+```
+
 ### Google Cloud Run Deployment
+
+https://google.github.io/adk-docs/deploy/cloud-run/ 
