@@ -76,8 +76,8 @@ The agent is designed to handle a full asset creation workflow. Below are exampl
 
 > **Agent Response:**
 > "I found a few matches in the database:
-> 1. `kenra_vol_spray_25.png`
-> 2. `kenra_vol_spray_travel.png`
+> 1. `Volume Spray 25 1.5oz.png`
+> 2. `Volume Spray 25 10oz.png`
 > Which one would you like to use?"
 
 ![Sourcing Assets (GCS Agent)](images/gcs_fetch.png)
@@ -85,7 +85,7 @@ The agent is designed to handle a full asset creation workflow. Below are exampl
 ### 2. Image Generation (Gen Agent)
 *Creating a new scene from scratch using the sourced product.*
 
-> **User:** "Use the first image (`kenra_vol_spray_25.png`). Generate a high-definition marketing shot of this bottle sitting on a marble counter in a luxury bathroom. Soft lighting, bokeh background."
+> **User:** "Use the first image (`Volume Spray 25 1.5oz.png`). Generate a high-definition marketing shot of this bottle sitting on a marble counter in a luxury bathroom. Soft lighting, bokeh background."
 
 **Agent Action:**
 * `root_agent` delegates to `gcs_agent` to load the file (if not already loaded).
@@ -95,7 +95,8 @@ The agent is designed to handle a full asset creation workflow. Below are exampl
 * **Creative:** Generates marble counter and bathroom context.
 
 > **Agent Response:**
-> *(Displays generated image)*
+> *(Displays generated image)* 
+![generate](images/generate.png)
 > "Here is the generated image of the Volume Spray in a luxury bathroom setting. Would you like to save this or try a different angle?"
 
 ### 3. Background Editing (Edit Agent)
