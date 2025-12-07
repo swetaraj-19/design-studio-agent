@@ -102,7 +102,7 @@ The agent is designed to handle a full asset creation workflow. Below are exampl
 ### 3. Background Editing (Edit Agent)
 *Quickly swapping the background of an existing asset.*
 
-> **User:** "Actually, can you just change the background to a solid studio grey? I need it for a catalog."
+> **User:** "Can you just change the background to a solid studio grey? I need it for a catalog. [Upload the reference image]"
 
 **Agent Action:**
 * Delegates to `image_edit_agent`.
@@ -110,6 +110,7 @@ The agent is designed to handle a full asset creation workflow. Below are exampl
 
 > **Agent Response:**
 > *(Displays edited image)*
+![edit](images/edit.png)
 > "I've updated the background to solid studio grey. How does this look?"
 
 ### 4. Saving & Publishing
