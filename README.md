@@ -80,7 +80,7 @@ The agent is designed to handle a full asset creation workflow. Below are exampl
 > 2. `kenra_vol_spray_travel.png`
 > Which one would you like to use?"
 
-![Sourcing Assets (GCS Agent)](images/gcs_fetch.png.png)
+![Sourcing Assets (GCS Agent)](images/gcs_fetch.png)
 
 ### 2. Image Generation (Gen Agent)
 *Creating a new scene from scratch using the sourced product.*
