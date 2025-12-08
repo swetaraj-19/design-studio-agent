@@ -330,8 +330,8 @@ dependencies = [
 requires-dist = [
     { name = "absl-py", specifier = ">=2.3.1" },
     { name = "fuzzywuzzy", specifier = ">=0.18.0" },
-    { name = "google-adk", specifier = "==1.17.0" },
-    { name = "google-cloud-aiplatform", extras = ["agent-engines"], specifier = "==1.125.0" },
+    { name = "google-adk", specifier = "==1.16.0" },
+    { name = "google-cloud-aiplatform", extras = ["agent-engines"], specifier = "==1.129.0" },
     { name = "google-cloud-iam", specifier = ">=2.20.0" },
     { name = "google-cloud-storage", specifier = ">=2.19.0" },
     { name = "google-genai", specifier = ">=1.52.0" },
@@ -375,7 +375,7 @@ wheels = [
 
 [[package]]
 name = "google-adk"
-version = "1.17.0"
+version = "1.16.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absolufy-imports" },
@@ -416,8 +416,9 @@ dependencies = [
     { name = "watchdog" },
     { name = "websockets" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/b9/f0/6ec7beb2a00f087840f7ac1991dddc0c3fb564ecec5a39b0ceead6bbd2c6/google_adk-1.16.0.tar.gz", hash = "sha256:42c88b7fb96e2fc171e911ef0b59451ba2bcb449b3e2270f2896e7c7957c2864", size = 1780053, upload-time = "2025-10-09T18:30:21.978Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1f/6e/5aadd9d4afd69ecd546d4ae02fdaf1eb29e1d1a5c84d1ae1d16906271d43/google_adk-1.17.0-py3-none-any.whl", hash = "sha256:1d32b425087bd57015b18c86f9850366fd5ea6a805bbcd147493750438ed6276", size = 2035820, upload-time = "2025-10-22T20:39:09.242Z" },
+    { url = "https://files.pythonhosted.org/packages/1d/96/1a85ab88135fc1bb52bf41e170606ac1fc0d4a4018462ea7b63d0f9caea9/google_adk-1.16.0-py3-none-any.whl", hash = "sha256:af35f821ee76700905b99eb6279222270d93286f1bd0485fc52d255e3c836880", size = 2062876, upload-time = "2025-10-09T18:30:20.238Z" },
 ]
 
 [[package]]
@@ -492,7 +493,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-aiplatform"
-version = "1.125.0"
+version = "1.129.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
@@ -509,9 +510,9 @@ dependencies = [
     { name = "shapely" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/d7/5c2df60dbcc68f292a4a7e7b0e17e17b4808788be0fdbdb150d439bc70e6/google_cloud_aiplatform-1.125.0.tar.gz", hash = "sha256:2cafa6222c78155c209893458706942dffa16d5647496257e916405a19e75a63", size = 9772810, upload-time = "2025-11-05T00:32:00.927Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2b/49/f89bd807be5893be286c831f037a302e45c66aa63983d90f1ffbee610e76/google_cloud_aiplatform-1.129.0.tar.gz", hash = "sha256:c53b9d6c529b4de2962b34425b0116f7a382a926b26e02c2196e372f9a31d196", size = 9799542, upload-time = "2025-12-03T03:18:56.216Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/fa/72c8d14b8abb119a15e31864fc61ab2ff5565f1e1166a137d62968935e00/google_cloud_aiplatform-1.125.0-py2.py3-none-any.whl", hash = "sha256:956058c138ba668f7e1365489dbbfca8606e4d35e9186fa429434950817a78d5", size = 8122978, upload-time = "2025-11-05T00:31:57.74Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/bb/0e284deeda5ac8eb5a42a3cbd75559e17d704b6ec7a993cd305d8d96f56c/google_cloud_aiplatform-1.129.0-py2.py3-none-any.whl", hash = "sha256:b0052143a1bc05894e59fc6f910e84c504e194fadf877f84fc790b38a2267739", size = 8140544, upload-time = "2025-12-03T03:18:53.562Z" },
 ]
 
 [package.optional-dependencies]
@@ -519,6 +520,7 @@ agent-engines = [
     { name = "cloudpickle" },
     { name = "google-cloud-logging" },
     { name = "google-cloud-trace" },
+    { name = "opentelemetry-exporter-gcp-logging" },
     { name = "opentelemetry-exporter-gcp-trace" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },

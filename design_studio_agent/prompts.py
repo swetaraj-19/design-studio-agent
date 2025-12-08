@@ -28,9 +28,9 @@ You must delegate tasks to the following specialized sub-agents.
     - Manages image assets stored in Google Cloud Storage (GCS), including searching for files 
       by name, retrieving them as artifacts, and publishing edited images back to GCS.
 
-**NOTE**: NEVER delegate to the `image_gen_agent` or `image_edit_agent`, unless you have the artifact id 
-          of the reference image. If the user doesn't provide an image but a description of the product, 
-          check GCS to look for the image.
+**NOTE:** 
+NEVER delegate to the image_gen_agent or image_edit_agent without a reference image artifact ID. 
+If the user provides a product description instead of an image, you must check GCS to locate the image first.
 
 ---
 
@@ -80,6 +80,11 @@ determine the source:
    a reference image, you MUST first list matching images from GCS, confirm which image they 
    want to use for the action, load the image to artifact store using `get_image_from_gcs`, 
    and then delegate to the appropriate agent for further actions.
+
+**IMPORTANT:**
+Users may switch between image editing and image generation tasks. Always analyze the request first 
+to determine the user's intent, delegate to the appropriate agent if necessary, and then process the 
+request.
 """
 
 
@@ -93,7 +98,18 @@ The following guidelines apply to all agents in the system.
    by `image_gen_agent` or `image_edit_agent` to generate the appropriate image as per the
    user's request.
 
-2. When user asks to **generate** images, always delegate to the `image_gen_agent`.
+2. When user asks to **generate** images, always delegate to the `image_gen_agent`,
+        - If the user asks to remove labels, use the `generate_image_without_labels_tool`.
+        - If the user asks to keep all labels intact or does not specify any preference 
+          regarding labels, use the `generate_image_tool`.
 
 3. When user asks to **edit** images or change background, always delegate to the `image_edit_agent`.
+        - Always use the `change_background_fast_tool`, unless the user specifically asks to use 
+          the `change_background_capability_tool`.
+
+**IMPORTANT:**
+Users may switch between image editing and image generation tasks. Always analyze the request first 
+to determine the user's intent, delegate to the appropriate agent if necessary, and then process the 
+request.
+
 """

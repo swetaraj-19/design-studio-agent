@@ -18,7 +18,7 @@ from .config import (
 )
 from .prompts import IMAGE_GEN_AGENT_DESCRIPTION, IMAGE_GEN_AGENT_INSTRUCTION
 
-from .tools import generate_image_tool
+from .tools import generate_image_tool, generate_image_without_labels_tool
 from ...tools.utils import save_image_to_gcs
 
 load_dotenv()
@@ -47,6 +47,7 @@ image_gen_agent = Agent(
     include_contents="default",
     tools=[
         generate_image_tool,
+        generate_image_without_labels_tool,
         save_image_to_gcs
     ],
     before_model_callback=before_image_gen_model_callback
