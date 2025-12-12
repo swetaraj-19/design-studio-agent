@@ -1,36 +1,46 @@
 # Henkel Design Studio Agent 🎨
 
-Design Studio is an AI agent system designed to streamline the creation of marketing assets. Built on the Google Cloud Agent Development Kit (ADK), it orchestrates Gemini 2.5 Flash and Imagen 3.0/4.0 models to source products, generate photorealistic marketing scenes, and perform precise background editing while strictly preserving brand identity.
+The Design Studio Agent is a specialized multimodal AI system designed to streamline the creation of marketing assets for Henkel's brands. It abstracts the complexity of prompt engineering and model selection, allowing marketing managers to generate high-volume, brand-compliant visual content via natural language.
 
-## 🏗 Architecture
+The system orchestrates Gemini 2.5 Flash for reasoning and generation, and Imagen 3.0/4.0 for editing, enabling users to source products from Google Cloud Storage, generate photorealistic marketing scenes, and perform precise background editing.
 
-The system consists of a **Root Agent** that orchestrates three specialized sub-agents:
+## 🏗 System Architecture
+
+The solution implements a Multi-Agent System (MAS) architecture using the Agent Development Kit (ADK). A central Root Agent evaluates user intent and routes execution to three specialized sub-agents.
 
 1.  **Root Agent (`design_studio_agent`)**:
     *   **Model:** `gemini-2.5-flash`
-    *   **Role:** The interface layer. It analyzes user requests and routes them to the appropriate sub-agent.
+    *   **Role:** The Orchestrator. Serves as the single entry point for user interaction.
+    *   **Routing Logic:** Evaluates intent to route between Creation (Gen Agent), Modification (Edit Agent), or Asset Management (GCS Agent).
     *   **Capabilities:** Context understanding, delegation, and error handling.
 
 2.  **GCS Agent (`gcs_agent`)**:
-    *   **Role:** The Asset Manager.
-    *   **Capabilities:** 
-        *   Fuzzy search for images in Google Cloud Storage.
-        *   Retrieving specific images into the artifact store.
-        *   Saving generated/edited results back to GCS.
+    *   **Role:** Asset Lifecycle Manager. Handles retrieval and persistence.
+    *   **Tools:** 
+        *   `search_images_in_gcs`: Uses fuzzy string matching to find product images in the source bucket.
+        *   `get_image_from_gcs`: Loads specific binary data into the artifact store.
+        *   `save_image_to_gcs`: Uploads final assets to the output bucket and generates signed URLs.
 
 3.  **Image Generation Agent (`image_gen_agent`)**:
     *   **Role:** The Creative Photographer.
-    *   **Capabilities:** Generates new marketing shots using a reference product. It rewrites prompts to include professional lighting and style descriptors.
+    *   **Logic:** Automatically expands user prompts into "meta-prompts" that include brand guidelines, lighting, and camera settings.
+    *   **Tools:**
+        *   `generate_image_tool (Gemini 2.5 Flash Image)`: Generates new scenes while preserving product integrity via reference artifacts
+        *   `generate_image_without_labels_tool`: Generates imagery while stripping text/labels for cleaner artistic outputs.
 
 4.  **Image Edit Agent (`image_edit_agent`)**:
     *   **Role:** The Retoucher.
-    *   **Capabilities:** Changes backgrounds/scenes of existing images *without* altering the product itself. Supports "Fast" (Speed) and "Capability" (Quality) modes.
----
+    *   **Logic:** Offers dual-path optimization based on user needs.
+    *   **Tools:** 
+        *   `change_background_fast_tool`: Uses Imagen 4.0 Fast. rapid iteration. Supports custom Aspect Ratios (16:9, 1:1, etc.) and Sample Counts
+        *   `change_background_capability_tool`: Uses Imagen 3.0 Capability. Supports precise product masking to preserve the exact pixels of the reference product.
 
 ## 🚀 Setup & Installation
 
 ### Prerequisites
-*   Python 3.10+
+*   Python 3.12+
+*   LLMs: Gemini 2.5 Flash, Gemini 2.5 Pro
+*   Image Models: Imagen 3.0 Capability, Imagen 4.0 Fast
 *   Google Cloud Project with Vertex AI API enabled.
 *   Google Cloud Storage Buckets (one for source images, one for output).
 
@@ -151,3 +161,14 @@ adk web
 ### Google Cloud Run Deployment
 
 https://google.github.io/adk-docs/deploy/cloud-run/ 
+
+## 🔍 Logging & Observability
+The agent utilizes standard Python logging with distinct levels:
+
+-   DEBUG: Full LLM prompts/responses and internal state transitions.
+
+-   INFO: Tool execution and agent routing decisions.
+
+-   ERROR: API failures (Gemini/Imagen/GCS).
+
+-   Logs are automatically streamed to Google Cloud Logging when deployed to Agent Engine.
