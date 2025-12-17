@@ -5,19 +5,16 @@ description = "Agent to generate new images and edit existing ones."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "a2a-sdk>=0.3.20",
     "absl-py>=2.3.1",
     "fuzzywuzzy>=0.18.0",
-    "google-adk==1.16.0",
-    "google-cloud-aiplatform[agent-engines]==1.129.0",
+    "google-adk>=1.21.0",
+    "google-cloud-aiplatform[agent-engines]>=1.129.0",
     "google-cloud-iam>=2.20.0",
     "google-cloud-storage>=2.19.0",
-    "google-genai>=1.52.0",
+    "google-genai>=1.55.0",
     "levenshtein>=0.27.3",
     "pillow>=12.0.0",
-    "python-a2a>=0.5.10",
     "thefuzz>=0.22.1",
-    "unicorn>=2.1.4",
 ]
 
 [build-system]
