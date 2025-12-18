@@ -1,14 +1,14 @@
+# design_studio_agent/agent.py
+import os
 import sys
 import logging
 import warnings
 from dotenv import load_dotenv
 
 from google.genai import types
-from google.genai import Client
-
 from google.adk import Agent
 from google.adk.tools import load_artifacts
-from google.adk.tools.tool_context import ToolContext
+# [REMOVED] GcsArtifactService import is not needed here
 
 from .callbacks import before_image_gen_model_callback
 from .config import (
@@ -48,7 +48,14 @@ image_gen_agent = Agent(
     tools=[
         generate_image_tool,
         generate_image_without_labels_tool,
-        save_image_to_gcs
+        save_image_to_gcs,
+        load_artifacts
     ],
     before_model_callback=before_image_gen_model_callback
 )
+
+# [DELETED] The configuration block that was causing the crash is removed.
+# We will handle artifact service injection in deploy.py
+
+# Alias for deploy.py
+#root_agent = image_gen_agent

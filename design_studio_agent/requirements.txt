@@ -1,5 +1,5 @@
 # --- Core ADK and Gemini Libraries ---
-google-adk
+google-adk>=1.21.0
 google-genai
 google-cloud-logging
 google-auth

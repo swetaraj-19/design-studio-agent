@@ -211,8 +211,11 @@ async def change_background_fast_tool(
                  logger.error("Prediction %d is missing 'bytesBase64Encoded' data. Skipping.", index)
                  continue
 
+            # [FIXED] Decode base64 string to bytes before creating Artifact
+            image_raw_bytes = base64.b64decode(base64_data)
+
             generated_image_artifact = types.Part.from_bytes(
-                data=base64_data,
+                data=image_raw_bytes,
                 mime_type="image/png"
             )
 
@@ -431,8 +434,11 @@ async def change_background_capability_tool(
                  logger.error("Prediction %d is missing 'bytesBase64Encoded' data. Skipping.", index)
                  continue
 
+            # [FIXED] Decode base64 string to bytes before creating Artifact
+            image_raw_bytes = base64.b64decode(base64_data)
+
             generated_image_artifact = types.Part.from_bytes(
-                data=base64_data,
+                data=image_raw_bytes,
                 mime_type="image/png"
             )
 

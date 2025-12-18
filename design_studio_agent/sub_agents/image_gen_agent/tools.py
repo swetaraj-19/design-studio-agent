@@ -8,6 +8,7 @@ import numpy as np
 from dotenv import load_dotenv
 
 from google import genai
+from google.genai import types # [ADDED] Explicit import for strict typing
 from google.adk.tools import ToolContext
 
 from .config import IMAGE_GENERATION_TOOL_MODEL
@@ -83,6 +84,7 @@ async def generate_image_tool(
             logger.critical("Failed to initialize GenAI Client: %s", e, exc_info=True)
             return {"status": "error", "message": "Internal tool configuration error."}
 
+        # Validate Inputs
         if not image_artifact_ids:
             logger.warning("Execution failed: No image_artifact_ids provided.")
             return {
@@ -96,6 +98,7 @@ async def generate_image_tool(
         image_artifacts = []
         logger.info("Attempting to load %d image artifacts.", len(image_artifact_ids))
 
+        # Load Artifacts
         for img_id in image_artifact_ids:
             logger.debug("Loading artifact: %s", img_id)
             artifact = await tool_context.load_artifact(filename=img_id)
@@ -115,6 +118,7 @@ async def generate_image_tool(
 
         logger.info("Successfully loaded %d image artifact(s).", len(image_artifacts))
 
+        # Prompt Construction
         image_generation_prompt = (
             f"USER PROMPT: {description}.\n\n---\n"
             "**CRITICAL INSTRUCTION: YOU MUST PRESERVE THE REFERENCE PRODUCT.**\n"
@@ -136,6 +140,7 @@ async def generate_image_tool(
         logger.debug("Final augmented prompt prepared:\n%s", image_generation_prompt)
         contents = image_artifacts + [image_generation_prompt]
 
+        # Validate Config
         if aspect_ratio not in ALLOWED_ASPECT_RATIOS:
             logger.warning(
                 "Invalid aspect ratio '%s' provided. Defaulting to '1:1'.", 
@@ -151,20 +156,21 @@ async def generate_image_tool(
             candidate_count = 1
         
         logger.info(
-            "Calling nano-banana API for image generation. Model: %s, Aspect: %s, Candidates: %d",
+            "Calling API for image generation. Model: %s, Aspect: %s, Candidates: %d",
             IMAGE_GENERATION_TOOL_MODEL,
             aspect_ratio,
             candidate_count,
         )
 
         try:
+            # [CHANGED] Use types.GenerateContentConfig for strict typing
             response = await client.aio.models.generate_content(
                 model=IMAGE_GENERATION_TOOL_MODEL,
                 contents=contents,
-                config=genai.types.GenerateContentConfig(
+                config=types.GenerateContentConfig(
                     response_modalities=["Image"],
                     candidate_count=candidate_count,
-                    image_config=genai.types.ImageConfig(
+                    image_config=types.ImageConfig(
                         aspect_ratio=aspect_ratio,
                     )
                 ),
@@ -196,22 +202,30 @@ async def generate_image_tool(
 
         artifact_id = ""
 
+        # [CHANGED] Robust Artifact Saving Logic
         for part in response.candidates[0].content.parts:
             if part.inline_data is not None:
                 artifact_id = f"generated_img_{tool_context.function_call_id}.png"
 
                 logger.info(
-                    "Saving generated image artifact: %s (MIME: %s)", 
+                    "Processing generated image artifact: %s (MIME: %s)", 
                     artifact_id,
                     part.inline_data.mime_type
+                )
+                
+                # [ADDED] explicitly create a Part object from bytes to ensure compatibility
+                # with the Artifact service. This is safer than passing the raw part directly.
+                image_part = types.Part.from_bytes(
+                    data=part.inline_data.data,
+                    mime_type=part.inline_data.mime_type
                 )
 
                 await tool_context.save_artifact(
                     filename=artifact_id, 
-                    artifact=part
+                    artifact=image_part  # [CHANGED] Passing the reconstructed part
                 )
 
-                logger.debug("Artifact %s saved.", artifact_id)
+                logger.debug("Artifact %s saved successfully via ToolContext.", artifact_id)
 
         if not artifact_id:
             logger.error("API call succeeded but no inline image data was found to save.")
@@ -303,7 +317,7 @@ async def generate_image_without_labels_tool(
             - 'message': Additional information or error details
     """
     logger.info(
-        "Tool 'generate_image_tool' started. Aspect: %s, Candidates: %d, Input Images: %s",
+        "Tool 'generate_image_without_labels_tool' started. Aspect: %s, Candidates: %d, Input Images: %s",
         aspect_ratio,
         candidate_count,
         image_artifact_ids,
@@ -324,6 +338,7 @@ async def generate_image_without_labels_tool(
             logger.critical("Failed to initialize GenAI Client: %s", e, exc_info=True)
             return {"status": "error", "message": "Internal tool configuration error."}
 
+        # Validate Inputs
         if not image_artifact_ids:
             logger.warning("Execution failed: No image_artifact_ids provided.")
             return {
@@ -337,6 +352,7 @@ async def generate_image_without_labels_tool(
         image_artifacts = []
         logger.info("Attempting to load %d image artifacts.", len(image_artifact_ids))
 
+        # Load Artifacts
         for img_id in image_artifact_ids:
             logger.debug("Loading artifact: %s", img_id)
             artifact = await tool_context.load_artifact(filename=img_id)
@@ -356,6 +372,7 @@ async def generate_image_without_labels_tool(
 
         logger.info("Successfully loaded %d image artifact(s).", len(image_artifacts))
 
+        # Prompt Construction
         image_generation_prompt = (
             f"USER PROMPT: {description}.\n\n---\n"
             "The product in the generated image must be devoid of all text and graphics, while strictly preserving the original physical appearance, color, and shape of the reference object.\n\n"
@@ -378,6 +395,7 @@ async def generate_image_without_labels_tool(
         logger.debug("Final augmented prompt prepared:\n%s", image_generation_prompt)
         contents = image_artifacts + [image_generation_prompt]
 
+        # Validate Config
         if aspect_ratio not in ALLOWED_ASPECT_RATIOS:
             logger.warning(
                 "Invalid aspect ratio '%s' provided. Defaulting to '1:1'.", 
@@ -393,20 +411,21 @@ async def generate_image_without_labels_tool(
             candidate_count = 1
         
         logger.info(
-            "Calling nano-banana API for image generation. Model: %s, Aspect: %s, Candidates: %d",
+            "Calling API for image generation. Model: %s, Aspect: %s, Candidates: %d",
             IMAGE_GENERATION_TOOL_MODEL,
             aspect_ratio,
             candidate_count,
         )
 
         try:
+            # [CHANGED] Use types.GenerateContentConfig for strict typing
             response = await client.aio.models.generate_content(
                 model=IMAGE_GENERATION_TOOL_MODEL,
                 contents=contents,
-                config=genai.types.GenerateContentConfig(
+                config=types.GenerateContentConfig(
                     response_modalities=["Image"],
                     candidate_count=candidate_count,
-                    image_config=genai.types.ImageConfig(
+                    image_config=types.ImageConfig(
                         aspect_ratio=aspect_ratio,
                     )
                 ),
@@ -438,22 +457,29 @@ async def generate_image_without_labels_tool(
 
         artifact_id = ""
 
+        # [CHANGED] Robust Artifact Saving Logic
         for part in response.candidates[0].content.parts:
             if part.inline_data is not None:
                 artifact_id = f"generated_img_{tool_context.function_call_id}.png"
 
                 logger.info(
-                    "Saving generated image artifact: %s (MIME: %s)", 
+                    "Processing generated image artifact: %s (MIME: %s)", 
                     artifact_id,
                     part.inline_data.mime_type
                 )
 
-                await tool_context.save_artifact(
-                    filename=artifact_id, 
-                    artifact=part
+                # [ADDED] explicitly create a Part object from bytes
+                image_part = types.Part.from_bytes(
+                    data=part.inline_data.data,
+                    mime_type=part.inline_data.mime_type
                 )
 
-                logger.debug("Artifact %s saved.", artifact_id)
+                await tool_context.save_artifact(
+                    filename=artifact_id, 
+                    artifact=image_part # [CHANGED] Passing the reconstructed part
+                )
+
+                logger.debug("Artifact %s saved successfully via ToolContext.", artifact_id)
 
         if not artifact_id:
             logger.error("API call succeeded but no inline image data was found to save.")
@@ -479,7 +505,7 @@ async def generate_image_without_labels_tool(
         input_ids_str = ", ".join(image_artifact_ids) if image_artifact_ids else ""
 
         logger.error(
-            "An unexpected error occurred in 'generate_image_tool'. Input IDs: %s. Error: %s",
+            "An unexpected error occurred in 'generate_image_without_labels_tool'. Input IDs: %s. Error: %s",
             input_ids_str,
             error,
             exc_info=True
