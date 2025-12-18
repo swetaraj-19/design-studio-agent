@@ -1,26 +1,13 @@
-# --- Core ADK and Gemini Libraries ---
-google-adk
+google-adk>=1.21.0
 google-genai
 google-cloud-logging
 google-auth
 google-cloud-storage
-
-# --- External Utility Libraries ---
-# Used for loading environment variables (e.g., .env file)
 python-dotenv
 requests
 numpy
 Pillow
-
-# --- Web Framework (Required by ADK for Cloud Run deployment) ---
-# Used to host the agent as a web service.
 uvicorn[standard]
 fastapi
-
-# --- Other Imported Libraries ---
-# Used in callbacks.py for hashing and logging
-# Note: 'base64', 'logging', 'warnings', 'hashlib', 'typing' are built-in libraries
-# and do not need to be listed.
-fuzzywuzzy
-python-Levenshtein
 thefuzz
+# Removed python-Levenshtein to prevent build compilation errors
