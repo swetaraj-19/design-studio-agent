@@ -116,6 +116,7 @@ def main(argv: list[str]) -> None:
     env_var_keys = [
         "GCS_BUCKET_SKU_DATA",
         "GCS_BUCKET_AGENT_OUTPUTS",
+        "GCS_SIGNER_SERVICE_ACCOUNT",
         "ROOT_AGENT_MODEL",
         "GCS_AGENT_MODEL",
         "IMAGE_GEN_AGENT_MODEL",

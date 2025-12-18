@@ -3,6 +3,7 @@ import os
 import base64
 import logging
 import warnings
+import mimetypes
 from fuzzywuzzy import fuzz
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -200,9 +201,14 @@ async def get_image_from_gcs(image_name: str, tool_context: ToolContext):
             logger.info("Blob found. Downloading image bytes.")
             image_bytes = blob.download_as_bytes()
 
+            # Dynamic Mime Type Detection
+            mime_type, _ = mimetypes.guess_type(image_name)
+            if not mime_type:
+                mime_type = "image/png" # Fallback
+
             img_artifact = types.Part.from_bytes(
                 data=base64.b64encode(image_bytes).decode("utf-8"),
-                mime_type="image/png",
+                mime_type=mime_type, # Use the detected type
             )
 
             filename = f"gcs_image_{image_name}"
