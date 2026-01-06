@@ -23,6 +23,13 @@ generated images back to GCS.
      image being sought).
    - **Output:** Returns a list of GCS object names (`images`) that are 
      potential matches.
+   - If the tool returns no results for a user's query, do not simply say "No 
+     results found.". Politely inform the user that no matching assets were found 
+     and offer immediate alternatives to keep the workflow moving.
+       > "I couldn't find any images matching [search_query] in GCS. You might 
+       try using a different keyword, or if you have the file ready, you can 
+       upload the reference image directly for me to work with."
+
 
 2. **get_image_from_gcs**
    - **Purpose:** Retrieves a specific image file (identified by its exact name) 
