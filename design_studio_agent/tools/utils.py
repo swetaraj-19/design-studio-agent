@@ -1,10 +1,13 @@
 import io
 import os
+import re
 import base64
 import logging
 import warnings
+import unicodedata
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from typing import Optional
 
 import google.auth
 from google.cloud import storage
@@ -16,6 +19,13 @@ from google.auth.transport import requests
 load_dotenv()
 logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
+
+
+def _sanitize_filename(name):
+    name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('ascii')
+    name = re.sub(r'[^\w\s-]', '', name).strip()
+    name = re.sub(r'[-\s]+', '_', name)
+    return str(name)
 
 
 def decode_b64_str(b64_str: str) -> bytes:
@@ -41,10 +51,31 @@ def decode_b64_str(b64_str: str) -> bytes:
 async def save_image_to_gcs(
     image_artifact_id: str,
     tool_context: ToolContext,
+    custom_name: Optional[str]
 ):
     """
-    Tool to save an image artifact to GCS and generate a Signed URL.
-    Refactored to support Gemini Enterprise / Cloud Run environments.
+    Tool to save an image artifact to Google Cloud Storage (GCS) and generate a 
+    temporary Signed URL for viewing.
+
+    This tool fetches a generated image from the session artifacts, sanitizes 
+    the provided filename, and uploads it to a secure GCS bucket. It returns a 
+    Signed URL that allows the user to view the image without public access.
+
+    Args:
+        image_artifact_id (str): The unique ID of the image artifact to be saved.
+        tool_context (ToolContext): Context of the tool execution.
+        custom_name (Optional[str]): An optional user-provided name for the file without the extension (if any)
+            * If no name is provided by the user, pass `use_default`.
+
+    Returns:
+        dict: A dictionary containing the operation result:
+            - 'status': "success" if the URL was signed, "partial_success" if 
+              uploaded but signing failed, or "error".
+            - 'signed_url': A time-limited (30 min) URL for the image, or a 
+              'gs://' path if signing failed.
+            - 'filename': The final name of the file saved in GCS.
+            - 'note': Contextual information regarding the URL status.
+            - 'message': (Optional) Detailed error message if the status is "error".
     """
     logger.info("Tool 'save_image_to_gcs' called for artifact ID: '%s'", image_artifact_id)
 
@@ -73,8 +104,12 @@ async def save_image_to_gcs(
                 extension = ext_candidate
         
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S%f")
-        filename = f"{timestamp}.{extension}"
-        
+
+        if custom_name and custom_name.lower() != 'use_default':
+            filename = f"{_sanitize_filename(custom_name)}.{extension}"
+        else:
+            filename = f"{timestamp}.{extension}"
+    
         # 3. Upload File
         client = storage.Client()
         bucket = client.bucket(OUTPUT_BUCKET)
